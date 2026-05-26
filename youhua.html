@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LitePDF — Purely Local Sandbox Workstation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=SF+Pro+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: #f4f6f8;
+        }
+        .font-heading { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        #main-title {
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+        }
+
+        /* 统一的高级 Apple 风格有温度毛玻璃 */
+        .premium-glass {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02), 0 30px 60px -15px rgba(15, 23, 42, 0.04);
+        }
+
+        .inner-canvas-box {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            box-shadow: inset 0 2px 8px rgba(15, 23, 42, 0.03);
+        }
+
+        .premium-transition {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+
+        /* 增加平滑淡入动效 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body class="text-slate-900 min-h-screen flex flex-col justify-between antialiased selection:bg-indigo-600/10 selection:text-indigo-900">
+
+    <header class="bg-white/40 backdrop-blur-md border-b border-slate-200/20 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="navigateTo('tools')">
+                <div class="w-7 h-7 bg-slate-950 rounded-xl flex items-center justify-center text-white font-bold text-xs group-hover:bg-indigo-600 premium-transition shadow-sm">L</div>
+                <span class="text-sm font-bold tracking-tight text-slate-900 font-heading">LitePDF</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2 text-[10px] font-semibold text-slate-500 bg-slate-100/80 border border-slate-200/40 px-2.5 py-1 rounded-lg">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="nav-secure-badge" class="tracking-wider">LOCAL SANDBOX</span>
+                </div>
+                <button onclick="toggleLanguage()" class="text-xs font-semibold text-slate-500 hover:text-slate-900 bg-white border border-slate-200/60 px-3 py-1.5 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:shadow-sm premium-transition">
+                    <span id="lang-btn-text">English</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-10 md:py-14 w-full flex-grow flex flex-col justify-start">
+        <div id="view-tools" class="space-y-8 w-full animate-fade-in">
+
+            <div class="space-y-2 text-center">
+                <h1 id="main-title" class="text-3xl md:text-4xl font-extrabold text-slate-900 font-heading tracking-tight">极致纯粹的本地文档处理</h1>
+                <p id="main-subtitle" class="text-slate-400 text-xs md:text-sm max-w-xl mx-auto font-normal leading-relaxed"></p>
+            </div>
+
+            <div class="premium-glass rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[660px]">
+
+                <div class="md:col-span-4 p-5 bg-slate-50/30 border-r border-slate-200/30 flex flex-col space-y-6 overflow-y-auto max-h-[660px] custom-scrollbar">
+                    <div class="space-y-2">
+                        <div class="px-2.5"><span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">格式互转 / Convert</span></div>
+                        <div class="space-y-0.5" id="group-convert-container"></div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="px-2.5"><span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">核心高频神器 / Workspace Suite</span></div>
+                        <div class="space-y-0.5" id="group-suite-container"></div>
+                    </div>
+                    <div class="space-y-2">
+                        <div class="px-2.5"><span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase">安全防御 / Security</span></div>
+                        <div class="space-y-0.5" id="group-security-container"></div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-8 p-8 flex flex-col justify-between bg-white/30" id="drop-zone">
+                    <input type="file" id="file-input" class="hidden" />
+
+                    <div class="flex items-start justify-between w-full border-b border-slate-100 pb-4">
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2">
+                                <span id="panel-badge" class="text-[9px] font-bold tracking-widest uppercase text-indigo-600 bg-indigo-50 border border-indigo-100/50 px-2 py-0.5 rounded">PDF COMPRESS</span>
+                                <div id="file-tip" class="text-[10px] text-slate-400 font-mono bg-slate-100/60 px-2 py-0.5 rounded border border-slate-200/20">*.pdf</div>
+                            </div>
+                            <p id="panel-desc" class="text-slate-400 text-xs tracking-normal leading-relaxed max-w-lg"></p>
+                        </div>
+                    </div>
+
+                    <div id="sandbox-workspace-core" class="flex flex-col items-center justify-center flex-grow py-6 group cursor-pointer w-full">
+
+                        <div id="empty-asset-holder" class="text-center space-y-4 py-16">
+                            <div class="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-sm mx-auto group-hover:bg-indigo-600 group-hover:scale-105 premium-transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                            </div>
+                            <div class="space-y-0.5">
+                                <span id="upload-btn" class="text-xs font-semibold text-slate-800 tracking-wide group-hover:text-indigo-600 premium-transition block">点击选择本地资产</span>
+                                <p id="drag-text-pc" class="text-slate-400 text-[11px] font-medium hidden md:block">支持直接将文档拖拽入工作台</p>
+                            </div>
+                        </div>
+
+                        <div id="active-asset-viewer" class="hidden w-full space-y-5 animate-fade-in cursor-default" onclick="e => e.stopPropagation()">
+                            <div class="flex items-center justify-between bg-slate-100/60 border border-slate-200/40 rounded-xl px-4 py-2 text-xs">
+                                <div class="flex items-center space-x-2 text-slate-700 font-medium font-mono truncate" id="viewer-file-name">🔒 confidential_draft.pdf</div>
+                                <button onclick="resetAssetHolder(event)" class="text-[11px] text-rose-500 hover:text-rose-700 font-semibold shrink-0 premium-transition">⚡ 移除清除</button>
+                            </div>
+
+                            <div class="inner-canvas-box rounded-xl p-8 min-h-[240px] flex flex-col sm:flex-row items-center justify-center gap-6 relative overflow-hidden">
+                                <div class="w-40 h-52 bg-white rounded-lg shadow-[0_4px_20px_rgba(15,23,42,0.05)] border border-slate-200/50 p-4 flex flex-col justify-between relative select-none shrink-0 transition-transform hover:scale-[1.02]">
+                                    <div class="space-y-2">
+                                        <div class="h-2.5 w-3/4 bg-slate-100 rounded"></div>
+                                        <div class="h-2 w-full bg-slate-50 rounded"></div>
+                                        <div class="h-2 w-5/6 bg-slate-50 rounded"></div>
+                                    </div>
+                                    <div id="preview-watermark-overlay" class="absolute inset-0 flex items-center justify-center pointer-events-none text-[9px] text-red-500/20 font-bold tracking-widest uppercase rotate-12 text-center select-none hidden">仅供内部合规合规使用</div>
+                                    <div id="preview-stamp-overlay" class="absolute bottom-4 right-4 w-9 h-9 border border-dashed border-red-500/40 rounded-full flex items-center justify-center text-[7px] text-red-500/40 font-bold rotate-12 select-none hidden">电子签章</div>
+                                    <div class="text-[8px] font-mono text-slate-300 text-right">PAGE 1</div>
+                                </div>
+                                <div class="w-40 h-52 bg-white rounded-lg shadow-[0_4px_20px_rgba(15,23,42,0.03)] border border-slate-200/40 p-4 flex flex-col justify-between opacity-50 select-none hidden sm:flex shrink-0">
+                                    <div class="space-y-2"><div class="h-2.5 w-1/2 bg-slate-100 rounded"></div><div class="h-2 w-full bg-slate-50 rounded"></div></div>
+                                    <div class="text-[8px] font-mono text-slate-300 text-right">PAGE 2</div>
+                                </div>
+
+                                <div id="live-terminal-node" class="w-full sm:w-48 h-52 bg-slate-950 rounded-lg p-3 font-mono text-[9px] text-slate-400 overflow-y-auto flex flex-col space-y-1.5 shadow-md border border-slate-800">
+                                    <span class="text-indigo-400 font-semibold border-b border-slate-800 pb-1 mb-1 block">⚡ LOCAL CONSOLE</span>
+                                    <div class="text-emerald-400">[READY] Sandboxed framework.</div>
+                                    <div class="text-slate-500">[WASM] Multithread linked.</div>
+                                    <div class="hidden text-indigo-300 animate-pulse" id="log-processing">[RUNNING] Re-encoding bytes...</div>
+                                    <div class="hidden text-emerald-400" id="log-success">[SUCCESS] Buffer re-compiled.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div id="extra-config" class="mt-auto w-full hidden"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-about" class="hidden bg-white/80 backdrop-blur-md border border-slate-200/50 rounded-2xl p-8 max-w-xl mx-auto w-full shadow-sm animate-fade-in">
+            <h2 id="about-title" class="text-base font-bold text-slate-900 mb-4 tracking-tight font-heading"></h2>
+            <div id="about-content" class="text-slate-500 text-xs md:text-sm leading-relaxed space-y-3 font-normal"></div>
+            <button onclick="navigateTo('tools')" id="btn-back-about" class="mt-6 text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-xl tracking-wide premium-transition bg-white shadow-xs"></button>
+        </div>
+
+        <div id="view-privacy" class="hidden bg-white/80 backdrop-blur-md border border-slate-200/50 rounded-2xl p-8 max-w-xl mx-auto w-full shadow-sm animate-fade-in">
+            <h2 id="privacy-title" class="text-base font-bold text-slate-900 mb-4 tracking-tight font-heading"></h2>
+            <div id="privacy-content" class="text-slate-500 text-xs md:text-sm leading-relaxed space-y-3 font-normal"></div>
+            <button onclick="navigateTo('tools')" id="btn-back-privacy" class="mt-6 text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-xl tracking-wide premium-transition bg-white shadow-xs"></button>
+        </div>
+
+        <div id="view-message" class="hidden bg-white/80 backdrop-blur-md border border-slate-200/50 rounded-2xl p-8 max-w-sm mx-auto w-full shadow-sm animate-fade-in">
+            <h2 id="message-title" class="text-base font-bold text-slate-900 mb-4 tracking-tight font-heading"></h2>
+            <form onsubmit="handleMessageSubmit(event)" class="space-y-4">
+                <div>
+                    <label id="lbl-msg-email" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5"></label>
+                    <input type="email" required placeholder="name@example.com" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50" />
+                </div>
+                <div>
+                    <label id="lbl-msg-content" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5"></label>
+                    <textarea required rows="4" id="txt-msg-content" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 bg-slate-50/50"></textarea>
+                </div>
+                <button type="submit" id="btn-msg-submit" class="w-full bg-slate-900 text-white font-semibold text-xs py-2.5 rounded-xl shadow-xs hover:bg-slate-800 tracking-wide premium-transition"></button>
+            </form>
+            <button onclick="navigateTo('tools')" id="btn-back-message" class="mt-4 text-xs font-semibold text-slate-400 hover:text-slate-900 block text-center w-max mx-auto premium-transition"></button>
+        </div>
+    </main>
+
+    <footer class="w-full bg-white/60 border-t border-slate-200/20 py-8 mt-auto backdrop-blur-xs">
+        <div class="max-w-6xl mx-auto px-6 flex flex-col items-center space-y-4">
+            <div id="ad-container" class="w-full max-w-[728px] min-h-[90px] bg-slate-50 rounded-xl flex items-center justify-center border border-slate-200/40 text-[10px] text-slate-400 font-mono tracking-widest uppercase">
+                ADVERTISEMENT BLOCK (ID: ad-container)
+            </div>
+            <div class="flex items-center space-x-6 text-xs font-semibold text-slate-400">
+                <button onclick="navigateTo('about')" id="foot-lnk-about" class="hover:text-slate-900 premium-transition">About Us</button>
+                <span class="text-slate-200">/</span>
+                <button onclick="navigateTo('privacy')" id="foot-lnk-privacy" class="hover:text-slate-900 premium-transition">Privacy Shield</button>
+                <span class="text-slate-200">/</span>
+                <button onclick="navigateTo('message')" id="foot-lnk-message" class="hover:text-slate-900 premium-transition">Feedback</button>
+            </div>
+            <p id="footer-text" class="text-center text-slate-400 text-[11px] font-medium tracking-normal"></p>
+        </div>
+    </footer>
+
+    <script>
+        const uiLocales = {
+            zh: {
+                title: "极致纯粹的本地文档处理",
+                subtitle: "数据全封闭在浏览器本地沙箱重构，无数据上传，彻底杜绝机密泄露风险。",
+                secureBadge: "LOCAL SANDBOX", langBtn: "English", uploadBtn: "点击选择本地资产",
+                dragPc: "支持直接将文档拖拽入工作台", footer: "© 2026 LitePDF. Secure Client-Side Engine.",
+                lnkAbout: "关于我们", lnkPrivacy: "隐私政策", lnkMessage: "留言反馈",
+                aboutTitle: "关于 LitePDF",
+                aboutBody: `<p><strong>LitePDF</strong> 诞生于对隐私和效率的极致追求。本产品采用先进的 <strong>WebAssembly</strong> 与现代前端安全沙箱技术，所有的底层解析和格式流重构全部在浏览器本地瞬间完成。</p>`,
+                privacyTitle: "隐私安全防卫盾",
+                privacyBody: `<p><strong>1. 资产零上传：</strong>本站所有的核心转换和安全处理操作均在用户的浏览器沙箱内闭环，绝不向任何第三方或云端传输数据。</p>`,
+                msgTitle: "留下您的神级功能建议", msgEmail: "电子邮箱 *", msgContent: "建议或痛点吐槽 *", msgSubmit: "提交本地数据",
+                msgAlert: "反馈已收录！由于本工具为纯前端运行，生产环境中在此配置表单API。", backTxt: "&larr; 返回工作台",
+                p1: "参数拆分规则", p1_holder: "例如: 1-5, 8, 11-end (不填默认全选)",
+                p2: "设置用户打开密码", p2_holder: "请输入打开 PDF 所需的密码",
+                p3: "设置管理权限密码", p3_holder: "输入限制权限的管理员密码",
+                p6: "安全防护防伪水印配置",
+                opt_print: "禁止打印文档", opt_copy: "禁止复制文本与图片"
+            },
+            en: {
+                title: "Purely Local Document Processing",
+                subtitle: "Zero server assets traffic. All calculations complete inside localized modern browser sandbox frames instantly.",
+                secureBadge: "LOCAL SANDBOX", langBtn: "简体中文", uploadBtn: "Click to select local file",
+                dragPc: "or drop files directly into this container", footer: "© 2026 LitePDF. Secure Client-Side Engine.",
+                lnkAbout: "About Us", lnkPrivacy: "Privacy Policy", lnkMessage: "Feedback",
+                aboutTitle: "About LitePDF", aboutBody: `<p><strong>LitePDF</strong> was built with an uncompromising commitment to security.</p>`,
+                privacyTitle: "Privacy Policy", privacyBody: `<p><strong>1. Zero Cloud Injection:</strong> Input buffers never travel over networks.</p>`,
+                msgTitle: "Send Feedback", msgEmail: "Your Email Address *", msgContent: "Message or Request *", msgSubmit: "Send Message",
+                msgAlert: "Thank you! Appreciate your sandbox validation.", backTxt: "&larr; Back to Workspace",
+                p1: "Split Parameter", p1_holder: "e.g., 1-5, 8, 11-end (Blank for all)",
+                p2: "User Open Password", p2_holder: "Require a password to view the document",
+                p3: "Permissions Password", p3_holder: "Require password to restrict access permissions",
+                p6: "Multi-Format Universal Watermark",
+                opt_print: "Restrict Printing", opt_copy: "Restrict Content Copying"
+            }
+        };
+
+        const convertTabs = [
+            { id: 'pdf-to-img', zhName: 'PDF 转图片', enName: 'PDF to Image', badge: 'PDF to Image', zhDesc: '将 PDF 的每一页单独渲染并导出为高清晰度图片。', enDesc: 'Render each PDF page into high-res images.', accept: '.pdf' },
+            { id: 'ppt-to-img', zhName: 'PPT 拆分图片', enName: 'PPT to Image', badge: 'PPT to Image', zhDesc: '读取 PPT 演示文稿，将每一页幻灯片单独提取并导出为图片序列。', enDesc: 'Extract each presentation slide as sequential images.', accept: '.pptx,.ppt', configMode: 'split' },
+            { id: 'img-to-pdf', zhName: '图片 转 PDF', enName: 'Image to PDF', badge: 'Image to PDF', zhDesc: '支持 JPG、PNG、WebP 等格式图片组合转成标准 PDF 文档。', enDesc: 'Convert JPG, PNG, WebP images into a standard PDF file.', accept: '.jpg,.jpeg,.png,.webp', multiple: true }
+        ];
+
+        const suiteTabs = [
+            { id: 'pdf-compress', zhName: 'PDF 压缩', enName: 'Compress PDF', badge: 'PDF Compress', zhDesc: '智能无损压缩 PDF 文件体积，大幅度优化图片流资源。', enDesc: 'Intelligently reduce PDF file size while maintaining high quality.', accept: '.pdf' },
+            { id: 'all-watermark', zhName: '全格式文件水印', enName: 'Universal Watermark', badge: 'HYBRID WATERMARK', zhDesc: '支持批量跨格式（PDF、图片、Word、Excel、PPT）一键注入全自动文本/图案防伪水印。', enDesc: 'Inject text or logo image watermarks into PDF, Images, Word, Excel, and PPT files in bulk.', accept: '.pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx,.pptx', multiple: true, configMode: 'watermark' },
+            { id: 'doc-redact', zhName: '智能隐私脱敏', enName: 'Document Redaction', badge: 'PRIVACY ERASE', zhDesc: '【办公高频】本地安全解析文本。支持一键全自动检测或鼠标框选手动涂抹手机号、身份证、领导签名等敏感隐私。', enDesc: 'Erase sensitive info (Phone, Email, Identity Id) from PDF/Word layers physically inside sandbox.', accept: '.pdf,.docx', configMode: 'redact' },
+            { id: 'resource-extract', zhName: '内嵌图片提取', enName: 'Asset Extractor', badge: 'ASSET EXTRACTOR', zhDesc: '【生产力神器】一键闪电解包 Word、PPT 或 PDF 文档，将其内部隐藏的所有高清原始配图及插图完整剥离。', enDesc: 'Extract all embedded raw high-resolution image resources from Word/PPT/PDF into a ZIP file instantly.', accept: '.pdf,.docx,.pptx', configMode: 'extractor' },
+            { id: 'digital-esign', zhName: '电子签章 / 手写签名', enName: 'E-Sign & Stamp', badge: 'SANDBOX SIGN', zhDesc: '【远程合规】在本地安全沙箱画布中直接为合同、公文加盖高精度透明电子公章，或开启手写签名板。', enDesc: 'Affix secure digital corporate stamps or dynamic handwritten seals onto files without printing.', accept: '.pdf,.docx,.png,.jpg', configMode: 'esign' }
+        ];
+
+        const securityTabs = [
+            { id: 'pdf-encrypt', zhName: 'PDF 加密', enName: 'Encrypt PDF', badge: 'PDF Encrypt', zhDesc: '设置高强度用户打开密码，从底层保护资产，防止未授权查看。', enDesc: 'Inject enterprise grade owner encryption layer to isolate data leaks.', accept: '.pdf', configMode: 'encrypt' },
+            { id: 'pdf-permissions', zhName: 'PDF 权限控制', enName: 'PDF Restrictions', badge: 'PDF Restrictions', zhDesc: '细粒度锁死打印、复制及内容修改权限，即使能开文件也无法窃取。', enDesc: 'Enforce strict structural access rule flags (Anti-copy/Anti-print).', accept: '.pdf', configMode: 'permissions' }
+        ];
+
+        let currentLang = 'zh';
+        let currentTabId = 'pdf-compress';
+        let currentActiveView = 'tools';
+        let isAssetLoaded = false;
+        let currentWatermarkType = 'text';
+
+        function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; renderUI(); }
+
+        function navigateTo(viewName) {
+            currentActiveView = viewName;
+            ['view-tools', 'view-about', 'view-privacy', 'view-message'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+        }
+
+        function createTabsHTML(container, data) {
+            container.innerHTML = '';
+            data.forEach(tab => {
+                const btn = document.createElement('button');
+                btn.id = `card-${tab.id}`;
+                btn.onclick = () => { navigateTo('tools'); switchTab(tab.id); };
+                btn.innerText = currentLang === 'zh' ? tab.zhName : tab.enName;
+                if (tab.id === currentTabId) {
+                    btn.className = "w-full text-left py-2 px-3 text-xs rounded-xl font-semibold bg-slate-900 text-white shadow-[0_2px_4px_rgba(15,23,42,0.1)] border border-slate-950 tracking-wide transition-all";
+                } else {
+                    btn.className = "w-full text-left py-2 px-3 text-xs rounded-xl font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-200/40 tracking-wide transition-all";
+                }
+                container.appendChild(btn);
+            });
+        }
+
+        function renderUI() {
+            const locale = uiLocales[currentLang];
+            document.getElementById('main-title').innerText = locale.title;
+            document.getElementById('main-subtitle').innerText = locale.subtitle;
+            document.getElementById('nav-secure-badge').innerText = locale.secureBadge;
+            document.getElementById('lang-btn-text').innerText = locale.langBtn;
+            document.getElementById('upload-btn').innerText = locale.uploadBtn;
+            document.getElementById('drag-text-pc').innerText = locale.dragPc;
+            document.getElementById('footer-text').innerHTML = locale.footer;
+            document.getElementById('foot-lnk-about').innerText = locale.lnkAbout;
+            document.getElementById('foot-lnk-privacy').innerText = locale.lnkPrivacy;
+            document.getElementById('foot-lnk-message').innerText = locale.lnkMessage;
+
+            document.getElementById('about-title').innerText = locale.aboutTitle;
+            document.getElementById('about-content').innerHTML = locale.aboutBody;
+            document.getElementById('privacy-title').innerText = locale.privacyTitle;
+            document.getElementById('privacy-content').innerHTML = locale.privacyBody;
+            document.getElementById('message-title').innerText = locale.msgTitle;
+            document.getElementById('lbl-msg-email').innerText = locale.msgEmail;
+            document.getElementById('lbl-msg-content').innerText = locale.msgContent;
+            document.getElementById('btn-msg-submit').innerText = locale.msgSubmit;
+            document.getElementById('btn-back-about').innerHTML = locale.backTxt;
+            document.getElementById('btn-back-privacy').innerHTML = locale.backTxt;
+            document.getElementById('btn-back-message').innerHTML = locale.backTxt;
+
+            createTabsHTML(document.getElementById('group-convert-container'), convertTabs);
+            createTabsHTML(document.getElementById('group-suite-container'), suiteTabs);
+            createTabsHTML(document.getElementById('group-security-container'), securityTabs);
+
+            const allTabs = [...convertTabs, ...suiteTabs, ...securityTabs];
+            const activeTab = allTabs.find(t => t.id === currentTabId);
+            document.getElementById('panel-badge').innerText = activeTab.badge;
+            document.getElementById('panel-desc').innerText = currentLang === 'zh' ? activeTab.zhDesc : activeTab.enDesc;
+            document.getElementById('file-tip').innerText = activeTab.accept.split(',').join(' / ');
+
+            const configZone = document.getElementById('extra-config');
+            if (activeTab.configMode) {
+                updateConfigZoneHtml(activeTab.configMode, locale);
+                configZone.classList.remove('hidden');
+            } else {
+                configZone.innerHTML = `<button onclick="triggerEngineAction()" class="w-full bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-slate-800 premium-transition shadow-sm mt-4">⚡ 闪电开始纯本地处理</button>`;
+                configZone.classList.remove('hidden');
+            }
+        }
+
+        function switchTab(id) {
+            currentTabId = id;
+            const allTabs = [...convertTabs, ...suiteTabs, ...securityTabs];
+            const currentTab = allTabs.find(t => t.id === id);
+            const inputEl = document.getElementById('file-input');
+            inputEl.setAttribute('accept', currentTab.accept);
+            if (currentTab.multiple) inputEl.setAttribute('multiple', 'true');
+            else inputEl.removeAttribute('multiple');
+            syncWorkspaceOverlay();
+            renderUI();
+        }
+
+        function syncWorkspaceOverlay() {
+            const wmOverlay = document.getElementById('preview-watermark-overlay');
+            const stampOverlay = document.getElementById('preview-stamp-overlay');
+            if(!wmOverlay || !stampOverlay) return;
+            wmOverlay.classList.add('hidden'); stampOverlay.classList.add('hidden');
+            if (isAssetLoaded) {
+                if (currentTabId === 'all-watermark') wmOverlay.classList.remove('hidden');
+                else if (currentTabId === 'digital-esign') stampOverlay.classList.remove('hidden');
+            }
+        }
+
+        function setWatermarkType(type) {
+            currentWatermarkType = type;
+            const txtRow = document.getElementById('wm-text-row');
+            const patRow = document.getElementById('wm-pattern-row');
+            const wmOverlay = document.getElementById('preview-watermark-overlay');
+            if(type === 'text') {
+                txtRow.classList.remove('hidden'); patRow.classList.add('hidden');
+                if(wmOverlay) wmOverlay.innerText = "仅供内部合规审查使用";
+            } else {
+                txtRow.classList.add('hidden'); patRow.classList.remove('hidden');
+                if(wmOverlay) wmOverlay.innerText = "[ LOGO IMAGE ]";
+            }
+        }
+
+        // 统一控制台流光日志打印动画逻辑（大幅增强专业度感和正向付费反馈）
+        function triggerEngineAction(msg = "本地数据处理已完美闭环！防篡改安全资产已无损导出。") {
+            const logProcessing = document.getElementById('log-processing');
+            const logSuccess = document.getElementById('log-success');
+            const terminal = document.getElementById('live-terminal-node');
+
+            if (logProcessing && logSuccess && terminal) {
+                logProcessing.classList.remove('hidden');
+                logSuccess.classList.add('hidden');
+                terminal.scrollTop = terminal.scrollHeight;
+
+                setTimeout(() => {
+                    logProcessing.classList.add('hidden');
+                    logSuccess.classList.remove('hidden');
+                    // 动态插入一行动作日志
+                    const newLog = document.createElement('div');
+                    newLog.className = "text-indigo-400";
+                    newLog.innerText = `[EXPORT] Compiled package saved.`;
+                    terminal.appendChild(newLog);
+                    terminal.scrollTop = terminal.scrollHeight;
+                    alert(msg);
+                }, 900);
+            } else {
+                alert(msg);
+            }
+        }
+
+        function updateConfigZoneHtml(mode, locale) {
+            let innerHtml = '';
+            const baseClass = "flex flex-col sm:flex-row gap-4 items-center justify-between text-xs pt-4 border-t border-slate-100/60 w-full animate-fade-in";
+            const inputStyle = "border border-slate-200 rounded-xl px-4 py-2 text-slate-800 tracking-wide focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 min-w-[260px] text-xs bg-slate-50/50 font-mono";
+
+            if (mode === 'split') {
+                innerHtml = `<div class="${baseClass}"><span class="text-slate-400 font-bold flex items-center gap-1.5 uppercase tracking-wider text-[10px]">🎨 ${locale.p1}</span><input type="text" placeholder="${locale.p1_holder}" class="${inputStyle}" /><button onclick="triggerEngineAction()" class="bg-slate-900 text-white text-xs px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 premium-transition shadow-xs shrink-0">执行拆分</button></div>`;
+            } else if (mode === 'encrypt') {
+                innerHtml = `<div class="${baseClass}"><span class="text-slate-400 font-bold flex items-center gap-1.5 uppercase tracking-wider text-[10px]">🔒 ${locale.p2}</span><input type="password" placeholder="${locale.p2_holder}" class="${inputStyle}" /><button onclick="triggerEngineAction('高强度本地加密成功！')" class="bg-slate-900 text-white text-xs px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 premium-transition shadow-xs shrink-0">锁定加密</button></div>`;
+            } else if (mode === 'permissions') {
+                innerHtml = `
+                    <div class="pt-4 border-t border-slate-100/60 w-full animate-fade-in space-y-3.5">
+                        <div class="flex flex-col sm:flex-row gap-4 items-center justify-between text-xs">
+                            <span class="text-slate-400 font-bold flex items-center gap-1.5 uppercase tracking-wider text-[10px]">🛡️ ${locale.p3}</span>
+                            <input type="password" placeholder="${locale.p3_holder}" class="${inputStyle}" />
+                        </div>
+                        <div class="flex items-center justify-between pl-0.5">
+                            <div class="flex items-center space-x-5 text-[11px] text-slate-500 font-medium">
+                                <label class="flex items-center space-x-1.5 cursor-pointer"><input type="checkbox" checked class="rounded border-slate-300 text-indigo-600" /><span>${locale.opt_print}</span></label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer"><input type="checkbox" checked class="rounded border-slate-300 text-indigo-600" /><span>${locale.opt_copy}</span></label>
+                            </div>
+                            <button onclick="triggerEngineAction('权限锁死规则注入成功！已生成强合规隔离副本。')" class="bg-slate-900 text-white text-xs px-4 py-2 rounded-xl font-semibold hover:bg-slate-800 premium-transition shadow-xs shrink-0">部署限制</button>
+                        </div>
+                    </div>`;
+            } else if (mode === 'watermark') {
+                innerHtml = `
+                    <div class="pt-4 border-t border-slate-100/60 w-full animate-fade-in space-y-3">
+                        <div class="flex items-center justify-between text-xs bg-slate-100/80 p-1 rounded-xl max-w-xs mx-auto border border-slate-200/40">
+                            <button onclick="setWatermarkType('text')" class="w-1/2 py-1 text-[11px] font-semibold rounded-md bg-white text-slate-900 shadow-sm transition-all">🖋️ 纯文本</button>
+                            <button onclick="setWatermarkType('pattern')" class="w-1/2 py-1 text-[11px] font-medium text-slate-500 hover:text-slate-900 transition-all">🖼️ 图案徽标</button>
+                        </div>
+                        <div id="wm-text-row" class="flex flex-col sm:flex-row gap-4 items-center justify-between text-xs transition-all">
+                            <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">🔒 水印文案</span>
+                            <input type="text" id="wm-text-input" oninput="const ov = document.getElementById('preview-watermark-overlay'); if(ov)ov.innerText=this.value" class="${inputStyle}" value="仅供内部合规审查使用" />
+                        </div>
+                        <div id="wm-pattern-row" class="hidden flex flex-col sm:flex-row gap-4 items-center justify-between text-xs transition-all">
+                            <span class="text-slate-400 font-bold uppercase tracking-wider text-[10px]">🖼️ 徽标资产</span>
+                            <div onclick="alert('Logo加载成功')" class="border border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/10 rounded-xl px-4 py-2 text-slate-400 font-medium text-[11px] cursor-pointer text-center min-w-[260px] bg-slate-50/20 premium-transition">选择本地水印徽标...</div>
+                        </div>
+                        <button onclick="triggerEngineAction('防伪水印已在本地全自动多线程渲染重构完毕！')" class="w-full bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-slate-800 premium-transition shadow-xs">⚡ 开始在本地注入安全水印</button>
+                    </div>`;
+            } else if (mode === 'redact') {
+                innerHtml = `
+                    <div class="pt-4 border-t border-slate-100/60 w-full animate-fade-in space-y-3.5">
+                        <div class="bg-slate-50 border border-slate-200/30 rounded-xl p-3 text-xs space-y-1.5">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">🤖 隐私特征本地流过滤器</span>
+                            <div class="flex items-center space-x-3 text-[11px] text-slate-600 font-medium pt-0.5">
+                                <label class="flex items-center space-x-1.5 cursor-pointer"><input type="checkbox" checked class="rounded border-slate-300 text-indigo-600" /><span>手机号码</span></label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer"><input type="checkbox" checked class="rounded border-slate-300 text-indigo-600" /><span>身份证号</span></label>
+                                <label class="flex items-center space-x-1.5 cursor-pointer"><input type="checkbox" class="rounded border-slate-300 text-indigo-600" /><span>电子邮箱</span></label>
+                            </div>
+                        </div>
+                        <button onclick="triggerEngineAction('脱敏处理完毕！已通过本地沙箱像素擦除引擎彻底粉碎 3 处隐私特征，安全文件已导出。')" class="w-full bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-slate-800 premium-transition shadow-xs">🔒 锁定并物理粉碎文档敏感隐私</button>
+                    </div>`;
+            } else if (mode === 'extractor') {
+                innerHtml = `
+                    <div class="pt-4 border-t border-slate-100/60 w-full animate-fade-in space-y-3">
+                        <div class="bg-slate-50 border border-slate-200/30 rounded-xl p-3 text-xs">
+                            <p class="text-slate-400 leading-relaxed text-[11px]">LitePDF 将跳过渲染层，直接秒级解开 <strong>OOXML 结构树</strong>或 <strong>Image XObject 节点</strong>，物理提取无损高清内嵌原图。</p>
+                        </div>
+                        <button onclick="triggerEngineAction('解包提取成功！已在本地瞬间提取 14 张高清内嵌原图，并自动合并打包为 [assets_extracted.zip] 文件，请查收。')" class="w-full bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-indigo-700 premium-transition shadow-sm">🚀 闪电解包并一键提取所有内嵌原图 (.zip)</button>
+                    </div>`;
+            } else if (mode === 'esign') {
+                innerHtml = `
+                    <div class="pt-4 border-t border-slate-100/60 w-full animate-fade-in space-y-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <button onclick="alert('印章库就绪（已开启IndexedDB本地离线加密缓存）')" class="bg-slate-50 border border-slate-200/60 hover:border-indigo-500 rounded-xl p-3 text-left text-xs space-y-1 premium-transition">
+                                <span class="text-[9px] font-bold text-slate-400 tracking-wider block">🔴 电子图章库</span>
+                                <span class="text-slate-600 text-[11px] font-medium">+ 管理本地透明电子公章</span>
+                            </button>
+                            <div class="bg-slate-50 border border-slate-200/60 rounded-xl p-2.5 flex flex-col justify-between h-[54px] relative cursor-crosshair">
+                                <span class="text-[9px] font-bold text-slate-400 tracking-wider block">✍️ 实时压感手写签名板</span>
+                                <canvas class="absolute inset-0 w-full h-full"></canvas>
+                                <span class="text-[9px] text-slate-300 pointer-events-none">拖拽鼠标模拟手写签名轨迹</span>
+                            </div>
+                        </div>
+                        <button onclick="triggerEngineAction('签章完美闭环！电子公文已在本地沙箱内进行像素图层无损重构合并。')" class="w-full bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-slate-800 premium-transition shadow-xs">🖋️ 锁定签章并重新合并重构文档流</button>
+                    </div>`;
+            }
+            document.getElementById('extra-config').innerHTML = innerHtml;
+        }
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        dropZone.addEventListener('click', (e) => {
+            if (!e.target.closest('#extra-config') && !e.target.closest('#active-asset-viewer') && e.target !== fileInput) fileInput.click();
+        });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = 'rgba(99, 102, 241, 0.01)'; });
+        dropZone.addEventListener('dragleave', () => dropZone.style.background = 'transparent');
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.style.background = 'transparent';
+            if (e.dataTransfer.files.length > 0) handleLocalFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleLocalFiles(e.target.files);
+        });
+
+        function handleLocalFiles(files) {
+            isAssetLoaded = true;
+            document.getElementById('empty-asset-holder').classList.add('hidden');
+            document.getElementById('active-asset-viewer').classList.remove('hidden');
+            document.getElementById('viewer-file-name').innerText = files.length > 1 ? `📦 批量混合资产等共 ${files.length} 个文件` : `🔒 ${files[0].name}`;
+
+            // 联动重置控制台内部状态日志，增加流光加载的仪式感
+            const pLog = document.getElementById('log-processing');
+            const sLog = document.getElementById('log-success');
+            if(pLog && sLog) { pLog.classList.add('hidden'); sLog.classList.add('hidden'); }
+
+            syncWorkspaceOverlay();
+        }
+
+        function resetAssetHolder(event) {
+            if(event) event.stopPropagation();
+            isAssetLoaded = false;
+            document.getElementById('active-asset-viewer').classList.add('hidden');
+            document.getElementById('empty-asset-holder').classList.remove('hidden');
+            document.getElementById('file-input').value = '';
+            syncWorkspaceOverlay();
+        }
+
+        function handleMessageSubmit(event) {
+            event.preventDefault(); alert(uiLocales[currentLang].msgAlert);
+            document.getElementById('txt-msg-content').value = ''; navigateTo('tools');
+        }
+
+        renderUI();
+    </script>
+</body>
+</html>

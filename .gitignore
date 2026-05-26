@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Messages data (user generated)
+messages.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Workbuddy
+.workbuddy/

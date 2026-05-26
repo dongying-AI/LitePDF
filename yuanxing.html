@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LitePDF — Purely Local Sandbox Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=SF+Pro+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: #f6f8fa;
+        }
+        .font-heading {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* 保持硬核像素级中文标题与副标题呼吸感 */
+        #main-title {
+            letter-spacing: 0.12em;
+            text-indent: 0.12em;
+            line-height: 1.4;
+        }
+        #main-subtitle {
+            letter-spacing: 0.04em;
+            line-height: 1.8;
+        }
+
+        /* 一体化控制台：融合毛玻璃与极细光流边缘 */
+        .workspace-console {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(218, 224, 233, 0.75);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.01), 0 32px 72px -16px rgba(0, 0, 0, 0.06);
+        }
+        /* 左侧质感分界线 */
+        .sidebar-border {
+            border-right: 1px solid rgba(218, 224, 233, 0.5);
+        }
+        /* 丝滑过渡动效 */
+        .premium-transition {
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="text-slate-900 min-h-screen flex flex-col justify-between antialiased selection:bg-indigo-500/10">
+
+    <header class="bg-white/40 backdrop-blur-md border-b border-slate-200/30 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="navigateTo('tools')">
+                <div class="w-6 h-6 bg-slate-950 rounded-lg flex items-center justify-center text-white font-bold text-[11px] tracking-tight group-hover:bg-indigo-600 premium-transition">L</div>
+                <span class="text-sm font-bold tracking-normal text-slate-900 font-heading">LitePDF</span>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-1.5 text-[9px] font-bold text-slate-400 bg-slate-200/50 px-2.5 py-1 rounded-md tracking-widest">
+                    <span class="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="nav-secure-badge">LOCAL SANDBOX</span>
+                </div>
+                <button onclick="toggleLanguage()" class="text-xs font-semibold tracking-wide text-slate-500 hover:text-slate-900 bg-white/60 hover:bg-white px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.01)] premium-transition">
+                    <span id="lang-btn-text">English</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-16 md:py-20 w-full flex-grow flex flex-col justify-start">
+
+        <div id="view-tools" class="space-y-12 w-full animate-fadeIn">
+            <div class="space-y-4 text-center">
+                <h1 id="main-title" class="text-2xl md:text-4xl font-bold text-slate-900 font-heading">极致纯粹的本地文档处理</h1>
+                <p id="main-subtitle" class="text-slate-400 text-xs md:text-sm max-w-2xl mx-auto font-normal"></p>
+            </div>
+
+            <div class="workspace-console rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[640px]">
+                <div class="md:col-span-4 p-6 bg-slate-50/40 sidebar-border flex flex-col space-y-6 overflow-y-auto max-h-[640px]">
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-1.5 px-2">
+                            <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase" id="group-title-convert">格式互转 / Convert</span>
+                        </div>
+                        <div class="space-y-1" id="group-convert-container"></div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-1.5 px-2">
+                            <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase" id="group-pdf-container-title">PDF 核心工具 / Suite</span>
+                        </div>
+                        <div class="space-y-1" id="group-suite-container"></div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-1.5 px-2">
+                            <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase" id="group-security-container-title">安全与防御 / Security</span>
+                        </div>
+                        <div class="space-y-1" id="group-security-container"></div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-8 p-10 flex flex-col justify-between bg-white/20" id="drop-zone">
+                    <input type="file" id="file-input" class="hidden" />
+
+                    <div class="flex items-center justify-between w-full border-b border-slate-100/80 pb-5">
+                        <div class="space-y-2">
+                            <div class="flex items-center space-x-2.5">
+                                <span id="panel-badge" class="text-[9px] font-bold tracking-widest uppercase text-indigo-600 bg-indigo-50 border border-indigo-100/70 px-2.5 py-0.5 rounded">PDF COMPRESS</span>
+                                <div id="file-tip" class="text-[10px] text-slate-400 font-mono bg-slate-50 border border-slate-200/40 px-2 py-0.5 rounded tracking-wide">*.pdf</div>
+                            </div>
+                            <p id="panel-desc" class="text-slate-400 text-xs md:text-sm tracking-normal leading-relaxed"></p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center flex-grow py-12 group cursor-pointer">
+                        <div class="w-16 h-16 bg-slate-950 text-white rounded-2xl flex items-center justify-center shadow-md group-hover:bg-indigo-600 group-hover:scale-105 premium-transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </div>
+
+                        <div class="mt-5 text-center space-y-2">
+                            <span id="upload-btn" class="text-sm font-semibold text-slate-800 tracking-wide group-hover:text-indigo-600 premium-transition block">
+                                点击选择本地文件
+                            </span>
+                            <p id="drag-text-pc" class="text-slate-400 text-xs font-medium tracking-wide hidden md:block">
+                                或者将文件拖拽至此区域
+                            </p>
+                        </div>
+                    </div>
+
+                    <div id="extra-config" class="mt-auto w-full hidden"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-about" class="hidden bg-white border border-slate-200/60 rounded-2xl p-10 max-w-2xl mx-auto w-full shadow-sm animate-fadeIn">
+            <h2 id="about-title" class="text-base font-bold text-slate-900 mb-5 tracking-wide font-heading"></h2>
+            <div id="about-content" class="text-slate-500 text-xs md:text-sm leading-relaxed tracking-normal space-y-4"></div>
+            <button onclick="navigateTo('tools')" id="btn-back-about" class="mt-8 text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-lg tracking-wide premium-transition">&larr; 返回工具箱</button>
+        </div>
+
+        <div id="view-privacy" class="hidden bg-white border border-slate-200/60 rounded-2xl p-10 max-w-2xl mx-auto w-full shadow-sm animate-fadeIn">
+            <h2 id="privacy-title" class="text-base font-bold text-slate-900 mb-5 tracking-wide font-heading"></h2>
+            <div id="privacy-content" class="text-slate-500 text-xs md:text-sm leading-relaxed tracking-normal space-y-4"></div>
+            <button onclick="navigateTo('tools')" id="btn-back-privacy" class="mt-8 text-xs font-semibold text-slate-500 hover:text-slate-900 border border-slate-200 px-3 py-1.5 rounded-lg tracking-wide premium-transition">&larr; 返回工具箱</button>
+        </div>
+
+        <div id="view-message" class="hidden bg-white border border-slate-200/60 rounded-2xl p-10 max-w-md mx-auto w-full shadow-sm animate-fadeIn">
+            <h2 id="message-title" class="text-base font-bold text-slate-900 mb-5 tracking-wide font-heading"></h2>
+            <form onsubmit="handleMessageSubmit(event)" class="space-y-4 mt-2">
+                <div>
+                    <label id="lbl-msg-email" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5"></label>
+                    <input type="email" required placeholder="name@example.com" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs md:text-sm text-slate-800 tracking-wide focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 premium-transition bg-slate-50/40" />
+                </div>
+                <div>
+                    <label id="lbl-msg-content" class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5"></label>
+                    <textarea required rows="4" id="txt-msg-content" class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs md:text-sm text-slate-800 tracking-wide focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 premium-transition bg-slate-50/40"></textarea>
+                </div>
+                <button type="submit" id="btn-msg-submit" class="w-full bg-slate-900 text-white font-medium text-xs md:text-sm py-2.5 rounded-xl shadow-sm hover:bg-slate-800 tracking-wide premium-transition">提交留言</button>
+            </form>
+            <button onclick="navigateTo('tools')" id="btn-back-message" class="mt-6 text-xs font-semibold text-slate-400 hover:text-slate-900 block text-center w-max mx-auto tracking-wide premium-transition">&larr; 返回工具箱</button>
+        </div>
+
+    </main>
+
+    <footer class="w-full bg-white border-t border-slate-200/40 py-10 mt-auto">
+        <div class="max-w-6xl mx-auto px-6 flex flex-col items-center space-y-6">
+            <div id="ad-container" class="w-full max-w-[728px] min-h-[90px] bg-slate-50 rounded-xl flex items-center justify-center border border-slate-200/50 text-[10px] text-slate-400 font-mono tracking-widest uppercase shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]">
+                ADVERTISEMENT BLOCK (ID: ad-container)
+            </div>
+
+            <div class="flex items-center space-x-6 text-xs md:text-sm font-semibold text-slate-400">
+                <button onclick="navigateTo('about')" id="foot-lnk-about" class="hover:text-slate-900 tracking-wide premium-transition">About Us</button>
+                <span class="text-slate-200">/</span>
+                <button onclick="navigateTo('privacy')" id="foot-lnk-privacy" class="hover:text-slate-900 tracking-wide premium-transition">Privacy Shield</button>
+                <span class="text-slate-200">/</span>
+                <button onclick="navigateTo('message')" id="foot-lnk-message" class="hover:text-slate-900 tracking-wide premium-transition">Feedback</button>
+            </div>
+
+            <p id="footer-text" class="text-center text-slate-400 text-[11px] tracking-wide font-medium"></p>
+        </div>
+    </footer>
+
+    <script>
+        const uiLocales = {
+            zh: {
+                title: "极致纯粹的本地文档处理",
+                subtitle: "数据全封闭在浏览器本地沙箱安全重构，不消耗服务器流量，杜绝泄密风险。",
+                secureBadge: "LOCAL SANDBOX",
+                langBtn: "English",
+                uploadBtn: "点击选择本地文件",
+                dragPc: "或者将文件拖拽至此区域",
+                footer: "© 2026 LitePDF. Secure Client-Side Engine.",
+                alertLoaded: "【沙箱核心本地读取就绪】: ",
+                lnkAbout: "关于我们", lnkPrivacy: "隐私政策", lnkMessage: "留言反馈",
+                aboutTitle: "关于 LitePDF",
+                aboutBody: `<p><strong>LitePDF</strong> 诞生于对隐私和效率的极致追求。在AI与大数据的时代，我们认为用户的每一份文档，都不应该被上传到未知的云端服务器进行秘密计算。</p>
+                            <p>我们采用先进的 <strong>WebAssembly</strong> 与本地前端安全沙箱技术，让所有的底层解析、图片渲染和格式流重构全部在你的浏览器本地瞬间完成。真正做到 100% 杜绝泄密风险。</p>`,
+                privacyTitle: "隐私安全政策",
+                privacyBody: `<p><strong>1. 数据绝不上传：</strong>本站所有的核心转换操作均在用户的浏览器沙箱内进行。你的任何文档资产绝对不会传输给本站或者任何第三方服务器。</p>
+                            <p><strong>2. 零日志跟踪：</strong>我们不收集、不存储、不分析你的文件内容。我们唯一的资金来源是位于页面底部的非侵入式广告。</p>`,
+                msgTitle: "留下你的建议", msgEmail: "你的电子邮箱 *", msgContent: "留言或功能建议 *", msgSubmit: "提交本地留言",
+                msgAlert: "感谢反馈！由于本工具为纯本地运行，实际生产中可在此处配置表单API。",
+                backTxt: "&larr; 返回工具箱",
+
+                // 新功能国际化文案
+                p1: "参数拆分规则", p1_holder: "例如: 1-5, 8, 11-end (不填默认全选)",
+                p2: "设置用户打开密码", p2_holder: "请输入打开 PDF 所需的密码",
+                p3: "设置管理权限密码", p3_holder: "输入限制权限的管理员密码",
+                p4: "输入已知的解密密码", p4_holder: "输入正确的密码以移除安全限制",
+                p5: "点击加载数字证书文件 (.pfx / .p12)",
+                opt_print: "禁止打印文档", opt_copy: "禁止复制文本与图片", opt_mod: "禁止修改文档内容"
+            },
+            en: {
+                title: "Purely Local Document Processing",
+                subtitle: "Zero server assets traffic. All calculations complete inside localized modern browser sandbox frames instantly.",
+                secureBadge: "LOCAL SANDBOX",
+                langBtn: "简体中文",
+                uploadBtn: "Click to select local file",
+                dragPc: "or drop files directly into this container",
+                footer: "© 2026 LitePDF. Secure Client-Side Engine.",
+                alertLoaded: "[Local Sandbox Engine Active]: ",
+                lnkAbout: "About Us", lnkPrivacy: "Privacy Policy", lnkMessage: "Feedback",
+                aboutTitle: "About LitePDF",
+                aboutBody: `<p><strong>LitePDF</strong> was built with an uncompromising commitment to security and processing velocity.</p>`,
+                privacyTitle: "Privacy & Isolation Shield",
+                privacyBody: `<p><strong>1. Zero Cloud Injection:</strong> Input buffers never travel over networks.</p>`,
+                msgTitle: "Send Feedback", msgEmail: "Your Email Address *", msgContent: "Message or Request *", msgSubmit: "Send Message",
+                msgAlert: "Thank you! Appreciate your sandbox validation.",
+                backTxt: "&larr; Back to Workspace",
+
+                // 新功能国际化文案
+                p1: "Split Parameter", p1_holder: "e.g., 1-5, 8, 11-end (Blank for all)",
+                p2: "User Open Password", p2_holder: "Require a password to view the document",
+                p3: "Permissions Password", p3_holder: "Require password to restrict access permissions",
+                p4: "Known Unlock Password", p4_holder: "Enter credentials to unlock restriction flags",
+                p5: "Load Digital Certificate File (.pfx / .p12)",
+                opt_print: "Restrict Printing", opt_copy: "Restrict Content Copying", opt_mod: "Restrict Content Modification"
+            }
+        };
+
+        const convertTabs = [
+            { id: 'pdf-to-img', zhName: 'PDF 转图片', enName: 'PDF to Image', badge: 'PDF to Image', zhDesc: '将 PDF 的每一页单独渲染并导出为高清晰度图片。', enDesc: 'Render and convert each PDF page into high-resolution PNG/JPG images.', accept: '.pdf' },
+            { id: 'ppt-to-img', zhName: 'PPT 拆分图片', enName: 'PPT to Image', badge: 'PPT to Image', zhDesc: '读取 PPT 演示文稿，将每一页幻灯片单独提取并导出为图片序列。', enDesc: 'Extract each presentation slide and export them as sequential images.', accept: '.pptx,.ppt', configMode: 'split' },
+            { id: 'img-to-pdf', zhName: '图片 转 PDF', enName: 'Image to PDF', badge: 'Image to PDF', zhDesc: '支持 JPG、PNG、WebP 等格式图片组合转成标准 PDF 文档。', enDesc: 'Convert JPG, PNG, WebP images into a standard PDF file.', accept: '.jpg,.jpeg,.png,.webp', multiple: true },
+            { id: 'word-to-pdf', zhName: 'Word 转 PDF', enName: 'Word to PDF', badge: 'Word to PDF', zhDesc: '将标准 Word 文档 (.docx) 转换为本地 PDF 格式。', enDesc: 'Convert standard Word documents (.docx) into PDF format locally.', accept: '.docx' },
+            { id: 'excel-to-pdf', zhName: 'Excel 转 PDF', enName: 'Excel to PDF', badge: 'Excel to PDF', zhDesc: '将电子表格 (.xlsx) 的工作表渲染输出为 PDF 页面。', enDesc: 'Render and export Excel spreadsheets (.xlsx) into PDF pages.', accept: '.xlsx' },
+            { id: 'ppt-to-pdf', zhName: 'PPT 转 PDF', enName: 'PPT to PDF', badge: 'PPT to PDF', zhDesc: '将演示文稿 (.pptx) 的幻灯片无损转换为 PDF。', enDesc: 'Convert PowerPoint presentations (.pptx) into PDF slides seamlessly.', accept: '.pptx' },
+            { id: 'pdf-to-word', zhName: 'PDF 转 Word', enName: 'PDF to Word', badge: 'PDF to Word', zhDesc: '提取 PDF 中的文本与基础布局，反向输出为可编辑的 Word 文档。', enDesc: 'Extract text layers and reconstruct them into editable Word documents.', accept: '.pdf' },
+            { id: 'pdf-to-excel', zhName: 'PDF 转 Excel', enName: 'PDF to Excel', badge: 'PDF to Excel', zhDesc: '自动识别 PDF 内的表格框架，提取数据到标准的 Excel 表格中。', enDesc: 'Detect tabular layouts within PDF and export structured data to Excel.', accept: '.pdf' }
+        ];
+
+        const suiteTabs = [
+            { id: 'pdf-compress', zhName: 'PDF 压缩', enName: 'Compress PDF', badge: 'PDF Compress', zhDesc: '智能无损压缩 PDF 文件体积，优化图片流。', enDesc: 'Intelligently reduce PDF file size while maintaining high quality.', accept: '.pdf' },
+            { id: 'pdf-merge', zhName: 'PDF 合并', enName: 'Merge PDF', badge: 'PDF Merge', zhDesc: '按顺序合并多个 PDF 文档为一个连续的文件。', enDesc: 'Combine multiple PDF files into one single document in order.', accept: '.pdf', multiple: true },
+            { id: 'pdf-split', zhName: 'PDF 拆分', enName: 'Split PDF', badge: 'PDF Split', zhDesc: '输入指定页码范围，将单份 PDF 拆解导出。', enDesc: 'Extract specific page ranges into separate PDF files.', accept: '.pdf', configMode: 'split' }
+        ];
+
+        // 新增：安全护航核心矩阵
+        const securityTabs = [
+            { id: 'pdf-encrypt', zhName: 'PDF 加密', enName: 'Encrypt PDF', badge: 'PDF Encrypt', zhDesc: '设置高强度用户打开密码，从底层保护资产，防止未授权查看。', enDesc: 'Inject enterprise grade owner encryption layer to isolate data leaks.', accept: '.pdf', configMode: 'encrypt' },
+            { id: 'pdf-permissions', zhName: 'PDF 权限控制', enName: 'PDF Permissions', badge: 'PDF Restrictions', zhDesc: '细粒度锁死打印、复制及内容修改权限，即使能开文件也无法窃取。', enDesc: 'Enforce strict structural access rule flags (Anti-copy/Anti-print).', accept: '.pdf', configMode: 'permissions' },
+            { id: 'pdf-decrypt', zhName: 'PDF 解密移除', enName: 'Decrypt PDF', badge: 'PDF Decrypt', zhDesc: '在拥有合法授权的前提下，一键移除已知密码 PDF 的安全与操作限制。', enDesc: 'Strip restriction locks and owner validation markers cleanly.', accept: '.pdf', configMode: 'decrypt' },
+            { id: 'pdf-digital-sign', zhName: '数字证书签名', enName: 'Digital Signature', badge: 'Digital Shield', zhDesc: '基于 X.509 标准证书本地对文档实施非对称加密签名，保证防伪与不可否认性。', enDesc: 'Embed client side cryptographically verified anti forge hash badges.', accept: '.pdf', configMode: 'signature' }
+        ];
+
+        let currentLang = 'zh';
+        let currentTabId = 'pdf-compress';
+        let currentActiveView = 'tools';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            renderUI();
+        }
+
+        function navigateTo(viewName) {
+            currentActiveView = viewName;
+            ['view-tools', 'view-about', 'view-privacy', 'view-message'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function createTabsHTML(container, data) {
+            container.innerHTML = '';
+            data.forEach(tab => {
+                const btn = document.createElement('button');
+                btn.id = `card-${tab.id}`;
+                btn.onclick = () => { navigateTo('tools'); switchTab(tab.id); };
+                btn.innerText = currentLang === 'zh' ? tab.zhName : tab.enName;
+
+                if (tab.id === currentTabId) {
+                    btn.className = "w-full text-left py-2.5 px-3.5 text-[13px] rounded-xl font-semibold bg-slate-900 text-white shadow-sm border border-slate-950 tracking-wide transition-all";
+                } else {
+                    btn.className = "w-full text-left py-2.5 px-3.5 text-[13px] rounded-xl font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-200/50 tracking-wide transition-all";
+                }
+                container.appendChild(btn);
+            });
+        }
+
+        function renderUI() {
+            const locale = uiLocales[currentLang];
+
+            document.getElementById('main-title').innerText = locale.title;
+            document.getElementById('main-subtitle').innerText = locale.subtitle;
+            document.getElementById('nav-secure-badge').innerText = locale.secureBadge;
+            document.getElementById('lang-btn-text').innerText = locale.langBtn;
+            document.getElementById('upload-btn').innerText = locale.uploadBtn;
+            document.getElementById('drag-text-pc').innerText = locale.dragPc;
+            document.getElementById('footer-text').innerHTML = locale.footer;
+            document.getElementById('foot-lnk-about').innerText = locale.lnkAbout;
+            document.getElementById('foot-lnk-privacy').innerText = locale.lnkPrivacy;
+            document.getElementById('foot-lnk-message').innerText = locale.lnkMessage;
+
+            document.getElementById('about-title').innerText = locale.aboutTitle;
+            document.getElementById('about-content').innerHTML = locale.aboutBody;
+            document.getElementById('privacy-title').innerText = locale.privacyTitle;
+            document.getElementById('privacy-content').innerHTML = locale.privacyBody;
+            document.getElementById('message-title').innerText = locale.msgTitle;
+            document.getElementById('lbl-msg-email').innerText = locale.msgEmail;
+            document.getElementById('lbl-msg-content').innerText = locale.msgContent;
+            document.getElementById('btn-msg-submit').innerText = locale.msgSubmit;
+
+            document.getElementById('btn-back-about').innerHTML = locale.backTxt;
+            document.getElementById('btn-back-privacy').innerHTML = locale.backTxt;
+            document.getElementById('btn-back-message').innerHTML = locale.backTxt;
+
+            // 渲染三组大分类 Tab
+            createTabsHTML(document.getElementById('group-convert-container'), convertTabs);
+            createTabsHTML(document.getElementById('group-suite-container'), suiteTabs);
+            createTabsHTML(document.getElementById('group-security-container'), securityTabs);
+
+            const allTabs = [...convertTabs, ...suiteTabs, ...securityTabs];
+            const activeTab = allTabs.find(t => t.id === currentTabId);
+            document.getElementById('panel-badge').innerText = activeTab.badge;
+            document.getElementById('panel-desc').innerText = currentLang === 'zh' ? activeTab.zhDesc : activeTab.enDesc;
+            document.getElementById('file-tip').innerText = activeTab.accept.split(',').join(' / ');
+
+            // 拦截并按需渲染动态高级面板
+            const configZone = document.getElementById('extra-config');
+            if (activeTab.configMode) {
+                updateConfigZoneHtml(activeTab.configMode, locale);
+                configZone.classList.remove('hidden');
+            } else {
+                configZone.classList.add('hidden');
+            }
+
+            navigateTo(currentActiveView);
+        }
+
+        function switchTab(id) {
+            currentTabId = id;
+            const allTabs = [...convertTabs, ...suiteTabs, ...securityTabs];
+            const currentTab = allTabs.find(t => t.id === id);
+
+            const inputEl = document.getElementById('file-input');
+            inputEl.setAttribute('accept', currentTab.accept);
+            if (currentTab.multiple) {
+                inputEl.setAttribute('multiple', 'true');
+            } else {
+                inputEl.removeAttribute('multiple');
+            }
+
+            renderUI();
+        }
+
+        // 高级多模态配置面板引擎，根据选中的底层能力动态加载高美感交互输入组件
+        function updateConfigZoneHtml(mode, locale) {
+            let innerHtml = '';
+            const baseClass = "flex flex-col sm:flex-row gap-4 items-center justify-between text-xs pt-5 border-t border-slate-100/80 w-full animate-fadeIn";
+            const inputStyle = "border border-slate-200 rounded-xl px-4 py-2 text-slate-800 tracking-wide focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 min-w-[280px] text-xs bg-slate-50/50 font-mono";
+
+            if (mode === 'split') {
+                innerHtml = `
+                    <div class="${baseClass}">
+                        <span class="text-slate-500 font-semibold flex items-center gap-1.5 uppercase tracking-widest text-[10px]">🎨 ${locale.p1}</span>
+                        <input type="text" placeholder="${locale.p1_holder}" class="${inputStyle}" />
+                    </div>`;
+            } else if (mode === 'encrypt') {
+                innerHtml = `
+                    <div class="${baseClass}">
+                        <span class="text-slate-500 font-semibold flex items-center gap-1.5 uppercase tracking-widest text-[10px]">🔒 ${locale.p2}</span>
+                        <input type="password" placeholder="${locale.p2_holder}" class="${inputStyle}" />
+                    </div>`;
+            } else if (mode === 'permissions') {
+                innerHtml = `
+                    <div class="pt-5 border-t border-slate-100/80 w-full animate-fadeIn space-y-4">
+                        <div class="flex flex-col sm:flex-row gap-4 items-center justify-between text-xs">
+                            <span class="text-slate-500 font-semibold flex items-center gap-1.5 uppercase tracking-widest text-[10px]">🛡️ ${locale.p3}</span>
+                            <input type="password" placeholder="${locale.p3_holder}" class="${inputStyle}" />
+                        </div>
+                        <div class="flex flex-wrap gap-x-6 gap-y-2 items-center justify-start pl-1 text-[11px] text-slate-500 font-medium">
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/10" /><span>${locale.opt_print}</span></label>
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/10" /><span>${locale.opt_copy}</span></label>
+                            <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/10" /><span>${locale.opt_mod}</span></label>
+                        </div>
+                    </div>`;
+            } else if (mode === 'decrypt') {
+                innerHtml = `
+                    <div class="${baseClass}">
+                        <span class="text-slate-500 font-semibold flex items-center gap-1.5 uppercase tracking-widest text-[10px]">🔓 ${locale.p4}</span>
+                        <input type="password" placeholder="${locale.p4_holder}" class="${inputStyle}" />
+                    </div>`;
+            } else if (mode === 'signature') {
+                innerHtml = `
+                    <div class="${baseClass}">
+                        <span class="text-slate-500 font-semibold flex items-center gap-1.5 uppercase tracking-widest text-[10px]">✍️ 数字证书分发</span>
+                        <div class="flex items-center space-x-3 w-full sm:w-auto">
+                            <input type="password" placeholder="证书私钥密码 / Pin" class="border border-slate-200 rounded-xl px-4 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 text-xs bg-slate-50/50 w-full sm:w-40 font-mono" />
+                            <button onclick="alert('提示：请直接在上方的主区域拖入或选择您的电子证书文件进行链式本地解析。')" class="bg-slate-100 hover:bg-slate-200/80 text-slate-700 px-4 py-2 rounded-xl text-xs font-semibold premium-transition shrink-0">${locale.p5}</button>
+                        </div>
+                    </div>`;
+            }
+            document.getElementById('extra-config').innerHTML = innerHtml;
+        }
+
+        function handleMessageSubmit(event) {
+            event.preventDefault();
+            alert(uiLocales[currentLang].msgAlert);
+            document.getElementById('txt-msg-content').value = '';
+            navigateTo('tools');
+        }
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        dropZone.addEventListener('click', (e) => {
+            if (!e.target.closest('#extra-config') && e.target !== fileInput) fileInput.click();
+        });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = 'rgba(99, 102, 241, 0.02)'; });
+        dropZone.addEventListener('dragleave', () => dropZone.style.background = 'transparent');
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.background = 'transparent';
+            if (e.dataTransfer.files.length > 0) handleLocalFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleLocalFiles(e.target.files);
+        });
+
+        function handleLocalFiles(files) {
+            const allTabs = [...convertTabs, ...suiteTabs, ...securityTabs];
+            const currentTab = allTabs.find(t => t.id === currentTabId);
+            const tabName = currentLang === 'zh' ? currentTab.zhName : currentTab.enName;
+            alert(`${uiLocales[currentLang].alertLoaded}[${tabName}] (文件数: ${files.length})`);
+        }
+
+        renderUI();
+    </script>
+</body>
+</html>
+
