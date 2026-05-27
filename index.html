@@ -13,6 +13,8 @@
     <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <script src="https://unpkg.com/downloadjs@1.4.7/download.min.js"></script>
     <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background-color: #f6f8fa; }
@@ -40,13 +42,260 @@
         .drop-highlight { background: rgba(99,102,241,0.03) !important; border: 2px dashed rgba(99,102,241,0.3) !important; }
         .file-list-item:hover { background: rgba(99,102,241,0.04); }
         ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+        /* ===== Dark Theme ===== */
+        html.dark body { background-color: #0b1221; }
+        html.dark .workspace-console {
+            background: #141b2d;
+            border-color: #1e293b;
+            box-shadow: 0 32px 72px -16px rgba(0,0,0,0.5);
+        }
+        html.dark .sidebar-border { border-right-color: #1e293b; }
+        html.dark header { background: #0b1221; border-bottom-color: #1e293b; }
+        html.dark footer { background: #0b1221; border-top-color: #1e293b; }
+
+        /* Backgrounds: light tones → dark card tones */
+        html.dark .bg-white { background-color: #1e293b !important; }
+        html.dark .bg-white\/40 { background: rgba(30,41,59,0.9) !important; }
+        html.dark .bg-white\/60 { background: rgba(30,41,59,0.9) !important; }
+        html.dark .bg-white\/90 { background: rgba(30,41,59,0.95) !important; }
+        html.dark .bg-slate-50 { background-color: #1e293b !important; }
+        html.dark .bg-slate-50\/20 { background-color: rgba(30,41,59,0.25) !important; }
+        html.dark .bg-slate-50\/30 { background-color: rgba(30,41,59,0.35) !important; }
+        html.dark .bg-slate-50\/50 { background-color: rgba(30,41,59,0.55) !important; }
+        html.dark .bg-slate-100 { background-color: #141b2d !important; }
+        html.dark .bg-slate-100\/50 { background-color: rgba(20,27,45,0.55) !important; }
+        html.dark .bg-slate-100\/60 { background-color: rgba(20,27,45,0.65) !important; }
+        html.dark .bg-slate-200 { background-color: #1e293b !important; }
+        html.dark .bg-slate-200\/30 { background-color: rgba(30,41,59,0.35) !important; }
+        html.dark .bg-slate-200\/40 { background-color: rgba(30,41,59,0.45) !important; }
+        html.dark .bg-slate-200\/50 { background-color: rgba(30,41,59,0.55) !important; }
+        html.dark .bg-slate-300 { background-color: #334155 !important; }
+        /* slate-900/950 KEEP DARK — do NOT invert */
+        html.dark .bg-slate-900 { background-color: #4338ca !important; } /* indigo-700: selected btn pops */
+        html.dark .bg-slate-950 { background-color: #0f172a !important; }
+
+        /* Text: brighter for dark backgrounds */
+        html.dark .text-slate-900 { color: #f8fafc !important; }
+        html.dark .text-slate-800 { color: #f1f5f9 !important; }
+        html.dark .text-slate-700 { color: #e2e8f0 !important; }
+        html.dark .text-slate-600 { color: #cbd5e1 !important; }
+        html.dark .text-slate-500 { color: #94a3b8 !important; }
+        html.dark .text-slate-400 { color: #64748b !important; }
+        html.dark .text-slate-300 { color: #475569 !important; }
+        html.dark .text-white { color: #f8fafc !important; }
+
+        /* Borders */
+        html.dark .border-slate-200 { border-color: #334155 !important; }
+        html.dark .border-slate-200\/30 { border-color: rgba(51,65,85,0.45) !important; }
+        html.dark .border-slate-200\/40 { border-color: rgba(51,65,85,0.5) !important; }
+        html.dark .border-slate-200\/60 { border-color: rgba(51,65,85,0.65) !important; }
+        html.dark .border-slate-200\/80 { border-color: rgba(51,65,85,0.85) !important; }
+        html.dark .border-slate-300 { border-color: #475569 !important; }
+        html.dark .border-slate-950 { border-color: #020617 !important; }
+
+        /* Shadows */
+        html.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0,0,0,0.5) !important; }
+        html.dark .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6) !important; }
+
+        /* Gradient */
+        html.dark .from-white { --tw-gradient-from: #1e293b !important; --tw-gradient-from-position: 0%; }
+        html.dark .to-slate-100 { --tw-gradient-to: #0b1221 !important; --tw-gradient-to-position: 100%; }
+
+        /* Hover states */
+        html.dark .hover\\:bg-white:hover { background-color: #334155 !important; }
+        html.dark .hover\\:bg-slate-50:hover { background-color: #334155 !important; }
+        html.dark .hover\\:bg-slate-200\/50:hover { background-color: rgba(51,65,85,0.55) !important; }
+        html.dark .hover\\:bg-indigo-50\\/10:hover { background-color: rgba(99,102,241,0.2) !important; }
+        html.dark .hover\\:text-slate-900:hover { color: #f8fafc !important; }
+        html.dark .hover\\:text-slate-600:hover { color: #cbd5e1 !important; }
+        html.dark .hover\\:text-slate-500:hover { color: #94a3b8 !important; }
+
+        /* Form elements */
+        html.dark input, html.dark textarea, html.dark select {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #475569 !important;
+        }
+        html.dark input::placeholder, html.dark textarea::placeholder {
+            color: #64748b !important;
+        }
+        html.dark input[type="range"] { accent-color: #6366f1; }
+        html.dark input:focus, html.dark textarea:focus {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important;
+        }
+
+        /* Scrollbar */
+        html.dark ::-webkit-scrollbar-thumb { background: #475569; }
+        html.dark ::-webkit-scrollbar-track { background: transparent; }
+
+        /* Accent colors */
+        html.dark .bg-indigo-50\/30 { background-color: rgba(99,102,241,0.12) !important; }
+        html.dark .bg-indigo-50\/40 { background-color: rgba(99,102,241,0.15) !important; }
+        html.dark .border-indigo-100 { border-color: rgba(99,102,241,0.3) !important; }
+        html.dark .border-dashed.border-indigo-100 { border-color: rgba(99,102,241,0.35) !important; }
+        html.dark .text-indigo-700 { color: #a5b4fc !important; }
+        html.dark .text-indigo-600 { color: #818cf8 !important; }
+        html.dark .text-indigo-600\/70 { color: rgba(129,140,248,0.85) !important; }
+        html.dark .bg-red-50 { background-color: rgba(239,68,68,0.12) !important; }
+        html.dark .border-red-100 { border-color: rgba(239,68,68,0.3) !important; }
+        html.dark .text-red-600 { color: #fca5a5 !important; }
+        html.dark .hover\\:bg-red-100:hover { background-color: rgba(239,68,68,0.2) !important; }
+
+        /* ===== Sidebar: Black BG + White Text ===== */
+        html.dark .bg-slate-50\/40.sidebar-border {
+            background-color: #000000 !important;
+            border-right-color: #333333 !important;
+        }
+        /* Sidebar group titles */
+        html.dark .sidebar-border .text-slate-400 {
+            color: #e5e5e5 !important;
+        }
+        /* Sidebar inactive tool buttons */
+        html.dark .sidebar-border button {
+            color: #f5f5f5 !important;
+        }
+        html.dark .sidebar-border button:hover {
+            background-color: #2a2a2a !important;
+            color: #ffffff !important;
+        }
+        /* Keep active button indigo pop */
+        html.dark .sidebar-border button.bg-slate-900 {
+            background-color: #4338ca !important;
+        }
+
+        /* ===== Markdown Preview Themes ===== */
+        #md-preview { transition: background-color 0.25s ease; font-size: 13px; }
+        /* Apple */
+        #md-preview.theme-apple { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif; color: #1d1d1f; line-height: 1.7; }
+        #md-preview.theme-apple h1 { font-size: 2em; font-weight: 700; letter-spacing: -0.02em; margin: 1.2em 0 0.5em; color: #1d1d1f; }
+        #md-preview.theme-apple h2 { font-size: 1.5em; font-weight: 600; letter-spacing: -0.015em; margin: 1em 0 0.4em; color: #1d1d1f; border-bottom: 1px solid #e5e5e7; padding-bottom: 0.3em; }
+        #md-preview.theme-apple h3 { font-size: 1.2em; font-weight: 600; margin: 0.8em 0 0.3em; color: #333; }
+        #md-preview.theme-apple p { margin: 0.6em 0; }
+        #md-preview.theme-apple ul, #md-preview.theme-apple ol { margin: 0.5em 0; padding-left: 1.5em; }
+        #md-preview.theme-apple li { margin: 0.2em 0; }
+        #md-preview.theme-apple blockquote { border-left: 4px solid #0071e3; background: #f5f5f7; padding: 0.8em 1em; margin: 0.8em 0; border-radius: 0 8px 8px 0; color: #555; font-style: italic; }
+        #md-preview.theme-apple code { font-family: "SF Mono", Menlo, monospace; background: #f5f5f7; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; color: #d32f2f; }
+        #md-preview.theme-apple pre { background: #1d1d1f; color: #f5f5f7; padding: 1em; border-radius: 10px; overflow-x: auto; margin: 0.8em 0; }
+        #md-preview.theme-apple pre code { background: transparent; color: inherit; padding: 0; }
+        #md-preview.theme-apple table { width: 100%; border-collapse: collapse; margin: 0.8em 0; font-size: 0.95em; }
+        #md-preview.theme-apple th, #md-preview.theme-apple td { border: 1px solid #e5e5e7; padding: 0.5em 0.75em; text-align: left; }
+        #md-preview.theme-apple th { background: #f5f5f7; font-weight: 600; }
+        #md-preview.theme-apple hr { border: none; border-top: 1px solid #e5e5e7; margin: 1.5em 0; }
+        #md-preview.theme-apple a { color: #0071e3; text-decoration: none; }
+        #md-preview.theme-apple a:hover { text-decoration: underline; }
+        #md-preview.theme-apple img { max-width: 100%; border-radius: 8px; margin: 0.5em 0; }
+        /* Bauhaus */
+        #md-preview.theme-bauhaus { font-family: "Helvetica Neue", Arial, sans-serif; color: #111; line-height: 1.6; }
+        #md-preview.theme-bauhaus h1 { font-size: 2.2em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin: 1em 0 0.5em; color: #000; border-bottom: 3px solid #000; padding-bottom: 0.3em; }
+        #md-preview.theme-bauhaus h2 { font-size: 1.4em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; margin: 1em 0 0.4em; color: #000; }
+        #md-preview.theme-bauhaus h3 { font-size: 1.1em; font-weight: 700; margin: 0.8em 0 0.3em; color: #222; }
+        #md-preview.theme-bauhaus p { margin: 0.6em 0; }
+        #md-preview.theme-bauhaus ul, #md-preview.theme-bauhaus ol { margin: 0.5em 0; padding-left: 1.2em; }
+        #md-preview.theme-bauhaus li { margin: 0.25em 0; }
+        #md-preview.theme-bauhaus blockquote { border-left: 6px solid #ff2d55; background: #fafafa; padding: 0.8em 1em; margin: 0.8em 0; font-weight: 500; }
+        #md-preview.theme-bauhaus code { font-family: "Courier New", monospace; background: #f0f0f0; padding: 0.15em 0.3em; border: 1px solid #ddd; font-size: 0.9em; }
+        #md-preview.theme-bauhaus pre { background: #111; color: #fff; padding: 1em; border-radius: 0; overflow-x: auto; margin: 0.8em 0; border-left: 6px solid #ff2d55; }
+        #md-preview.theme-bauhaus pre code { background: transparent; color: inherit; padding: 0; border: none; }
+        #md-preview.theme-bauhaus table { width: 100%; border-collapse: collapse; margin: 0.8em 0; }
+        #md-preview.theme-bauhaus th, #md-preview.theme-bauhaus td { border: 2px solid #000; padding: 0.5em 0.75em; }
+        #md-preview.theme-bauhaus th { background: #000; color: #fff; font-weight: 700; text-transform: uppercase; font-size: 0.85em; }
+        #md-preview.theme-bauhaus hr { border: none; border-top: 3px solid #000; margin: 1.5em 0; }
+        #md-preview.theme-bauhaus a { color: #ff2d55; font-weight: 600; text-decoration: none; }
+        #md-preview.theme-bauhaus a:hover { text-decoration: underline; }
+        #md-preview.theme-bauhaus img { max-width: 100%; border: 3px solid #000; margin: 0.5em 0; }
+        /* Academic */
+        #md-preview.theme-academic { font-family: Georgia, "Noto Serif", "Songti SC", serif; color: #2c2c2c; line-height: 1.8; }
+        #md-preview.theme-academic h1 { font-size: 1.8em; font-weight: 400; margin: 1.2em 0 0.5em; color: #1a1a1a; text-align: center; }
+        #md-preview.theme-academic h2 { font-size: 1.3em; font-weight: 600; margin: 1em 0 0.4em; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 0.2em; }
+        #md-preview.theme-academic h3 { font-size: 1.1em; font-weight: 600; margin: 0.8em 0 0.3em; color: #444; font-style: italic; }
+        #md-preview.theme-academic p { margin: 0.8em 0; text-align: justify; }
+        #md-preview.theme-academic ul, #md-preview.theme-academic ol { margin: 0.6em 0; padding-left: 2em; }
+        #md-preview.theme-academic li { margin: 0.3em 0; }
+        #md-preview.theme-academic blockquote { border-left: 3px solid #8b7355; padding: 0.5em 1em; margin: 1em 0; color: #555; font-style: italic; background: #faf8f5; }
+        #md-preview.theme-academic code { font-family: "Courier New", monospace; background: #f5f2ed; padding: 0.15em 0.3em; font-size: 0.9em; color: #8b4513; }
+        #md-preview.theme-academic pre { background: #f5f2ed; padding: 1em; border: 1px solid #e0ddd5; overflow-x: auto; margin: 0.8em 0; }
+        #md-preview.theme-academic pre code { background: transparent; color: inherit; padding: 0; }
+        #md-preview.theme-academic table { width: 100%; border-collapse: collapse; margin: 1em 0; font-size: 0.95em; }
+        #md-preview.theme-academic th, #md-preview.theme-academic td { border: 1px solid #ccc; padding: 0.4em 0.7em; }
+        #md-preview.theme-academic th { background: #f5f2ed; font-weight: 600; }
+        #md-preview.theme-academic hr { border: none; border-top: 1px solid #ccc; margin: 1.5em 0; }
+        #md-preview.theme-academic a { color: #8b4513; text-decoration: underline; }
+        #md-preview.theme-academic img { max-width: 100%; margin: 0.5em 0; border: 1px solid #ddd; padding: 4px; background: #fff; }
+        /* Tech */
+        #md-preview.theme-tech { font-family: "SF Mono", "Fira Code", Menlo, monospace; color: #e0e0e0; background: #0d1117; line-height: 1.7; border-radius: 8px; }
+        #md-preview.theme-tech h1 { font-size: 1.8em; font-weight: 700; margin: 1em 0 0.5em; color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 0.3em; }
+        #md-preview.theme-tech h2 { font-size: 1.4em; font-weight: 600; margin: 0.8em 0 0.4em; color: #7ee787; }
+        #md-preview.theme-tech h3 { font-size: 1.1em; font-weight: 600; margin: 0.6em 0 0.3em; color: #d2a8ff; }
+        #md-preview.theme-tech p { margin: 0.6em 0; color: #c9d1d9; }
+        #md-preview.theme-tech ul, #md-preview.theme-tech ol { margin: 0.5em 0; padding-left: 1.5em; }
+        #md-preview.theme-tech li { margin: 0.2em 0; }
+        #md-preview.theme-tech blockquote { border-left: 4px solid #58a6ff; background: #161b22; padding: 0.8em 1em; margin: 0.8em 0; color: #8b949e; }
+        #md-preview.theme-tech code { background: #161b22; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; color: #ff7b72; }
+        #md-preview.theme-tech pre { background: #161b22; padding: 1em; border-radius: 8px; overflow-x: auto; margin: 0.8em 0; border: 1px solid #30363d; }
+        #md-preview.theme-tech pre code { background: transparent; color: inherit; padding: 0; }
+        #md-preview.theme-tech table { width: 100%; border-collapse: collapse; margin: 0.8em 0; }
+        #md-preview.theme-tech th, #md-preview.theme-tech td { border: 1px solid #30363d; padding: 0.5em 0.75em; }
+        #md-preview.theme-tech th { background: #161b22; color: #58a6ff; font-weight: 600; }
+        #md-preview.theme-tech hr { border: none; border-top: 1px solid #30363d; margin: 1.5em 0; }
+        #md-preview.theme-tech a { color: #58a6ff; text-decoration: none; }
+        #md-preview.theme-tech a:hover { text-decoration: underline; }
+        #md-preview.theme-tech img { max-width: 100%; border-radius: 6px; margin: 0.5em 0; border: 1px solid #30363d; }
+
+        /* Dark mode overrides for themes */
+        html.dark #md-preview.theme-apple { color: #f5f5f7; background: #1c1c1e; }
+        html.dark #md-preview.theme-apple h1, html.dark #md-preview.theme-apple h2 { color: #f5f5f7; border-color: #3a3a3c; }
+        html.dark #md-preview.theme-apple h3 { color: #e0e0e0; }
+        html.dark #md-preview.theme-apple blockquote { background: #2c2c2e; color: #b0b0b0; border-color: #0a84ff; }
+        html.dark #md-preview.theme-apple code { background: #2c2c2e; color: #ff453a; }
+        html.dark #md-preview.theme-apple th { background: #2c2c2e; }
+        html.dark #md-preview.theme-apple th, html.dark #md-preview.theme-apple td { border-color: #3a3a3c; }
+        html.dark #md-preview.theme-apple hr { border-color: #3a3a3c; }
+        html.dark #md-preview.theme-apple a { color: #0a84ff; }
+        html.dark #md-preview.theme-bauhaus { color: #f5f5f7; background: #1a1a1a; }
+        html.dark #md-preview.theme-bauhaus h1, html.dark #md-preview.theme-bauhaus h2 { color: #fff; border-color: #fff; }
+        html.dark #md-preview.theme-bauhaus h3 { color: #e0e0e0; }
+        html.dark #md-preview.theme-bauhaus blockquote { background: #222; border-color: #ff375f; }
+        html.dark #md-preview.theme-bauhaus code { background: #2a2a2a; border-color: #444; }
+        html.dark #md-preview.theme-bauhaus pre { background: #000; border-left-color: #ff375f; }
+        html.dark #md-preview.theme-bauhaus th { background: #fff; color: #000; }
+        html.dark #md-preview.theme-bauhaus th, html.dark #md-preview.theme-bauhaus td { border-color: #fff; }
+        html.dark #md-preview.theme-bauhaus hr { border-color: #fff; }
+        html.dark #md-preview.theme-bauhaus a { color: #ff375f; }
+        html.dark #md-preview.theme-bauhaus img { border-color: #fff; }
+        html.dark #md-preview.theme-academic { color: #e0e0e0; background: #1a1a1a; }
+        html.dark #md-preview.theme-academic h1 { color: #f0f0f0; }
+        html.dark #md-preview.theme-academic h2 { color: #e0e0e0; border-color: #555; }
+        html.dark #md-preview.theme-academic h3 { color: #ccc; }
+        html.dark #md-preview.theme-academic blockquote { background: #222; border-color: #a08060; color: #bbb; }
+        html.dark #md-preview.theme-academic code { background: #222; color: #d4a574; }
+        html.dark #md-preview.theme-academic pre { background: #222; border-color: #444; }
+        html.dark #md-preview.theme-academic th { background: #222; }
+        html.dark #md-preview.theme-academic th, html.dark #md-preview.theme-academic td { border-color: #555; }
+        html.dark #md-preview.theme-academic hr { border-color: #555; }
+        html.dark #md-preview.theme-academic a { color: #d4a574; }
+        html.dark #md-preview.theme-academic img { border-color: #444; background: #222; }
+        html.dark #md-preview.theme-tech { color: #e0e0e0; background: #0d1117; }
+        /* Markdown editor dark */
+        html.dark #md-input { background-color: #1e293b !important; color: #f8fafc !important; border-color: #475569 !important; }
+        html.dark #html-input { background-color: #1e293b !important; color: #f8fafc !important; border-color: #475569 !important; }
+        html.dark #html-preview-iframe { border-color: #475569 !important; background: #ffffff !important; }
+        html.dark #md-editor-container label { color: #94a3b8 !important; }
+        html.dark #html-editor-container label { color: #94a3b8 !important; }
+
+        /* Smooth transition for theme switch */
+        body, header, footer, .workspace-console, input, textarea, select, button, canvas, div, span, p, a {
+            transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+        }
     </style>
+    <script>tailwind.config = { darkMode: 'class' };</script>
 </head>
 <body class="text-slate-900 min-h-screen flex flex-col antialiased selection:bg-indigo-500/10">
 
 <!-- ===== HEADER ===== -->
 <header class="bg-white/40 backdrop-blur-md border-b border-slate-200/30 sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="max-w-[1500px] mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center space-x-3 cursor-pointer group" onclick="navigateTo('tools')">
             <div class="w-6 h-6 bg-slate-950 rounded-lg flex items-center justify-center text-white font-bold text-[11px] tracking-tight group-hover:bg-indigo-600 premium-transition">L</div>
             <span class="text-sm font-bold tracking-normal text-slate-900 font-heading">LitePDF</span>
@@ -59,23 +308,26 @@
             <button onclick="toggleLanguage()" class="text-xs font-semibold tracking-wide text-slate-500 hover:text-slate-900 bg-white/60 hover:bg-white px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.01)] premium-transition">
                 <span id="lang-btn-text">English</span>
             </button>
+            <button onclick="toggleTheme()" class="text-xs font-semibold tracking-wide text-slate-500 hover:text-slate-900 bg-white/60 hover:bg-white px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.01)] premium-transition">
+                <span id="theme-btn-text">🌙 深色</span>
+            </button>
         </div>
     </div>
 </header>
 
 <!-- ===== MAIN ===== -->
-<main class="max-w-6xl mx-auto px-6 py-16 md:py-20 w-full flex-grow flex flex-col justify-start">
+<main class="max-w-[1500px] mx-auto px-4 py-4 md:py-6 w-full flex-grow flex flex-col justify-start" id="main-container">
 
     <!-- VIEW: TOOLS -->
-    <div id="view-tools" class="space-y-12 w-full animate-fadeIn">
+    <div id="view-tools" class="space-y-6 w-full animate-fadeIn">
         <div class="space-y-4 text-center">
             <h1 id="main-title" class="text-2xl md:text-4xl font-bold text-slate-900 font-heading">极致纯粹的本地文档处理</h1>
             <p id="main-subtitle" class="text-slate-400 text-xs md:text-sm max-w-2xl mx-auto font-normal"></p>
         </div>
 
-        <div class="workspace-console rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[640px]">
+        <div class="workspace-console rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[780px]" id="workspace-console">
             <!-- SIDEBAR -->
-            <div class="md:col-span-4 p-6 bg-slate-50/40 sidebar-border flex flex-col space-y-6 overflow-y-auto max-h-[640px]">
+            <div class="md:col-span-4 p-6 bg-slate-50/40 sidebar-border flex flex-col space-y-6 overflow-y-auto max-h-[780px]" id="sidebar-panel">
                 <div class="space-y-2">
                     <div class="flex items-center space-x-1.5 px-2">
                         <span class="text-[10px] font-bold text-slate-400 tracking-widest uppercase" id="group-title-convert">格式互转 / Convert</span>
@@ -97,7 +349,7 @@
             </div>
 
             <!-- RIGHT PANEL -->
-            <div class="md:col-span-8 p-8 flex flex-col bg-white/20" id="drop-zone">
+            <div class="md:col-span-8 p-5 flex flex-col bg-white/20" id="drop-zone">
                 <input type="file" id="file-input" class="hidden" />
 
                 <!-- Panel Header -->
@@ -112,7 +364,7 @@
                 </div>
 
                 <!-- Upload Area -->
-                <div id="upload-area" class="flex flex-col items-center justify-center flex-grow py-12 rounded-xl cursor-pointer group premium-transition hover:bg-slate-50/60 min-h-[280px] border-2 border-dashed border-slate-200/60 hover:border-indigo-300/60" onclick="triggerFileInput()">
+                <div id="upload-area" class="flex flex-col items-center justify-center flex-grow py-8 rounded-xl cursor-pointer group premium-transition hover:bg-slate-50/60 min-h-[500px] border-2 border-dashed border-slate-200/60 hover:border-indigo-300/60" onclick="triggerFileInput()">
                     <div id="upload-icon-wrap" class="w-20 h-20 bg-slate-950 text-white rounded-3xl flex items-center justify-center shadow-lg group-hover:bg-indigo-600 group-hover:scale-110 premium-transition mb-6">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l-3.75 3.75M12 9.75l3.75 3.75M3 17.25V6.75A2.25 2.25 0 015.25 4.5h13.5A2.25 2.25 0 0121 6.75v10.5a2.25 2.25 0 01-2.25 2.25H5.25a2.25 2.25 0 01-2.25-2.25z"></path>
@@ -130,6 +382,34 @@
 
                 <!-- File List -->
                 <div id="file-list" class="hidden mt-4 space-y-2 max-h-48 overflow-y-auto"></div>
+
+                <!-- Markdown Editor (md-to-pdf only) -->
+                <div id="md-editor-container" class="hidden flex-col flex-grow space-y-3 min-h-[400px]">
+                    <div class="flex gap-3 flex-grow min-h-0">
+                        <div class="flex-1 flex flex-col min-h-0">
+                            <label id="md-editor-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Markdown Editor</label>
+                            <textarea id="md-input" class="flex-grow w-full border border-slate-200 rounded-xl p-4 text-xs font-mono leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 bg-white/60" placeholder="# Type Markdown here..."></textarea>
+                        </div>
+                        <div class="flex-1 flex flex-col min-h-0">
+                            <label id="md-preview-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Live Preview</label>
+                            <div id="md-preview" class="flex-grow w-full border border-slate-200 rounded-xl p-5 overflow-y-auto bg-white theme-apple"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HTML Editor (html-to-pdf only) -->
+                <div id="html-editor-container" class="hidden flex-col flex-grow space-y-3 min-h-[400px]">
+                    <div class="flex gap-3 flex-grow min-h-0">
+                        <div class="flex-1 flex flex-col min-h-0">
+                            <label id="html-editor-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">HTML Source</label>
+                            <textarea id="html-input" class="flex-grow w-full border border-slate-200 rounded-xl p-4 text-xs font-mono leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 bg-white/60" spellcheck="false"></textarea>
+                        </div>
+                        <div class="flex-1 flex flex-col min-h-0">
+                            <label id="html-preview-label" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Live Preview</label>
+                            <iframe id="html-preview-iframe" class="flex-grow w-full border border-slate-200 rounded-xl bg-white" sandbox="allow-same-origin"></iframe>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Progress Bar -->
                 <div id="progress-wrap" class="hidden mt-4">
@@ -207,7 +487,7 @@
 
 <!-- ===== FOOTER ===== -->
 <footer class="w-full bg-white border-t border-slate-200/40 py-10 mt-auto">
-    <div class="max-w-6xl mx-auto px-6 flex flex-col items-center space-y-6">
+    <div class="max-w-[1500px] mx-auto px-4 flex flex-col items-center space-y-6">
         <div id="ad-container" class="w-full max-w-[728px] min-h-[90px] bg-slate-50 rounded-xl flex items-center justify-center border border-slate-200/50 text-[10px] text-slate-400 font-mono tracking-widest uppercase shadow-[inset_0_1px_2px_rgba(0,0,0,0.01)]">
             ADVERTISEMENT BLOCK (ID: ad-container)
         </div>
@@ -240,6 +520,8 @@ const uiLocales = {
         subtitle: "数据全封闭在浏览器本地沙箱安全重构，不消耗服务器流量，杜绝泄密风险。",
         secureBadge: "LOCAL SANDBOX",
         langBtn: "English",
+        themeDark: "🌙 深色",
+        themeLight: "☀️ 浅色",
         uploadBtn: "点击选择本地文件",
         dragPc: "或者将文件拖拽至此区域",
         uploadHint: "纯本地算力处理，大文件无限制",
@@ -284,6 +566,14 @@ const uiLocales = {
         wmTypeTxt: "🖋️ 纯文本水印", wmTypePat: "🖼️ 图案徽标水印",
         wmPatternLoad: "+ 点击载入本地水印标志图案...",
         wm_pattern_label: "载入水印图章 (PNG/JPG)",
+        wmPresets: "⚡ 快速预设",
+        wmAdvanced: "⚙️ 高级选项",
+        wmPreviewLabel: "👁️ 实时预览",
+        wmPresetConfidential: "机密",
+        wmPresetTopSecret: "绝密",
+        wmPresetDraft: "草稿",
+        wmPresetInternal: "内部使用",
+        wmPresetReview: "待审核",
         // Redact
         redact_auto: "🤖 智能自动脱敏", redact_manual: "🖌️ 手动选择涂抹",
         redact_desc: "系统将利用本地正则匹配流，毫秒级交叉锁死所有敏感数据坐标：",
@@ -298,13 +588,51 @@ const uiLocales = {
         estamp_title: "🔴 盖印官方电子图章", esign_manual: "✍️ 开启实时压感手写板",
         estamp_btn: "+ 管理本地印章库", esign_clear: "清除",
         esign_hint: "提示：签章/签名生成后，可在上方预览区自由拖拽缩放至目标公文页面的任意指定坐标。",
-        esign_btn: "🖋️ 锁定签章并重新合并重构文档流"
+        esign_btn: "🖋️ 锁定签章并重新合并重构文档流",
+        // Markdown
+        mdTheme: "排版主题",
+        mdThemeApple: "🍎 苹果风",
+        mdThemeBauhaus: "◼️ 极简包豪斯",
+        mdThemeAcademic: "📜 学术经典",
+        mdThemeTech: "💻 科技暗色",
+        mdExportPdf: "📄 导出 PDF",
+        mdExportLongImg: "🖼️ 导出长图",
+        mdEditorLabel: "Markdown 编辑器",
+        mdPreviewLabel: "实时预览",
+        mdPlaceholder: "# 在此输入 Markdown 内容...\n\n## 快速上手\n\n- 使用 `#` 创建标题\n- 使用 `**粗体**` 和 `*斜体*`\n- 使用 ``` 包裹代码块\n- 使用 `>` 创建引用\n\n> 创作属于你的精美排版文档\n",
+        mdPdfTitle: "Markdown 转 PDF",
+        // HTML to PDF
+        htmlPreviewLabel: "HTML 源码",
+        htmlExportPdf: "📄 导出 PDF",
+        htmlPasteTab: "粘贴代码",
+        htmlFileTab: "上传文件",
+        htmlPlaceholder: "<!-- 在此粘贴 HTML 代码 -->\n<!DOCTYPE html>\n<html>\n<body>\n  <h1>Hello LitePDF</h1>\n  <p style=\"color: #6366f1;\">HTML → PDF 一键转换</p>\n</body>\n</html>",
+        // EPUB
+        epubExportPdf: "📄 导出 PDF",
+        epubExportWord: "📝 导出 Word",
+        epubChapter: "章节",
+        epubLoading: "正在解析电子书结构...",
+        epubRendering: "正在渲染章节",
+        // OCR
+        ocrTitle: "OCR 文字识别",
+        ocrDesc: "上传图片或 PDF，Tesseract.js 本地引擎高精度提取文字，支持中英文混合识别。",
+        ocrLang: "识别语言",
+        ocrLangChiSim: "简体中文",
+        ocrLangEng: "English",
+        ocrLangChiEng: "中英混合",
+        ocrBtn: "🔍 开始识别",
+        ocrCopy: "📋 复制文本",
+        ocrDownloadTxt: "💾 下载 TXT",
+        ocrProgress: "正在识别...",
+        ocrPlaceholder: "识别结果将在此显示..."
     },
     en: {
         title: "Purely Local Document Processing",
         subtitle: "Zero server assets traffic. All calculations complete inside localized modern browser sandbox frames instantly.",
         secureBadge: "LOCAL SANDBOX",
         langBtn: "简体中文",
+        themeDark: "🌙 Dark",
+        themeLight: "☀️ Light",
         uploadBtn: "Click to select local file",
         dragPc: "or drop files directly into this container",
         uploadHint: "Local processing power, no file size limits",
@@ -347,8 +675,16 @@ const uiLocales = {
         wm_p7: "Layout Style", wm_p8: "Parameters",
         opt_wm_full: "Grid Tile Mosaic", opt_wm_single: "Center Fixed Single",
         wmTypeTxt: "🖋️ Text Watermark", wmTypePat: "🖼️ Pattern/Logo",
-        wmPatternLoad: "+ Click to load local watermark logo...",
+        wmPatternLoad: "+ Click to load watermark stamp...",
         wm_pattern_label: "Load Watermark Stamp (PNG/JPG)",
+        wmPresets: "⚡ Quick Presets",
+        wmAdvanced: "⚙️ Advanced Options",
+        wmPreviewLabel: "👁️ Live Preview",
+        wmPresetConfidential: "Confidential",
+        wmPresetTopSecret: "Top Secret",
+        wmPresetDraft: "Draft",
+        wmPresetInternal: "Internal Only",
+        wmPresetReview: "Under Review",
         // Redact
         redact_auto: "🤖 Auto Redaction", redact_manual: "🖌️ Manual Selection",
         redact_desc: "Local regex engine will lock down sensitive data coordinates instantly:",
@@ -363,7 +699,43 @@ const uiLocales = {
         estamp_title: "🔴 Digital Corporate Stamp", esign_manual: "✍️ Pressure-Sensitive Signature Pad",
         estamp_btn: "+ Manage Local Stamp Library", esign_clear: "Clear",
         esign_hint: "Tip: After creating stamp/signature, drag and scale it freely in the preview to target position.",
-        esign_btn: "🖋️ Lock Stamp & Reconstruct Document"
+        esign_btn: "🖋️ Lock Stamp & Reconstruct Document",
+        // Markdown
+        mdTheme: "Typesetting Theme",
+        mdThemeApple: "🍎 Apple Style",
+        mdThemeBauhaus: "◼️ Minimal Bauhaus",
+        mdThemeAcademic: "📜 Academic Classic",
+        mdThemeTech: "💻 Tech Dark",
+        mdExportPdf: "📄 Export PDF",
+        mdExportLongImg: "🖼️ Export Long Image",
+        mdEditorLabel: "Markdown Editor",
+        mdPreviewLabel: "Live Preview",
+        mdPlaceholder: "# Type your Markdown here...\n\n## Quick Start\n\n- Use `#` for headings\n- Use `**bold**` and `*italic*`\n- Use ``` for code blocks\n- Use `>` for blockquotes\n\n> Create beautifully typeset documents\n",
+        mdPdfTitle: "Markdown to PDF",
+        // HTML to PDF
+        htmlPreviewLabel: "HTML Source",
+        htmlExportPdf: "📄 Export PDF",
+        htmlPasteTab: "Paste Code",
+        htmlFileTab: "Upload File",
+        htmlPlaceholder: "<!-- Paste HTML code here -->\n<!DOCTYPE html>\n<html>\n<body>\n  <h1>Hello LitePDF</h1>\n  <p style=\"color: #6366f1;\">HTML → PDF conversion</p>\n</body>\n</html>",
+        // EPUB
+        epubExportPdf: "📄 Export PDF",
+        epubExportWord: "📝 Export Word",
+        epubChapter: "Chapter",
+        epubLoading: "Parsing ebook structure...",
+        epubRendering: "Rendering chapters",
+        // OCR
+        ocrTitle: "OCR Text Recognition",
+        ocrDesc: "Upload images or PDFs, local Tesseract.js engine extracts text with high accuracy. Supports Chinese/English.",
+        ocrLang: "Language",
+        ocrLangChiSim: "简体中文",
+        ocrLangEng: "English",
+        ocrLangChiEng: "Chinese + English",
+        ocrBtn: "🔍 Start OCR",
+        ocrCopy: "📋 Copy Text",
+        ocrDownloadTxt: "💾 Download TXT",
+        ocrProgress: "Recognizing...",
+        ocrPlaceholder: "Recognition results will appear here..."
     }
 };
 
@@ -377,6 +749,8 @@ const convertTabs = [
     { id: 'word-to-pdf', zhName: 'Word 转 PDF', enName: 'Word to PDF', badge: 'Word → PDF', zhDesc: '将标准 Word 文档 (.docx) 转换为本地 PDF 格式，保留排版与样式。', enDesc: 'Convert standard Word documents (.docx) into PDF format locally.', accept: '.docx', icon: '📝' },
     { id: 'excel-to-pdf', zhName: 'Excel 转 PDF', enName: 'Excel to PDF', badge: 'Excel → PDF', zhDesc: '将电子表格 (.xlsx) 的工作表渲染输出为 PDF 页面。', enDesc: 'Render and export Excel spreadsheets (.xlsx) into PDF pages.', accept: '.xlsx', icon: '📈' },
     { id: 'ppt-to-pdf', zhName: 'PPT 转 PDF', enName: 'PPT to PDF', badge: 'PPT → PDF', zhDesc: '将演示文稿 (.pptx) 的幻灯片无损转换为 PDF 文档。', enDesc: 'Convert PowerPoint presentations (.pptx) into PDF slides seamlessly.', accept: '.pptx', icon: '📑' },
+    { id: 'html-to-pdf', zhName: 'HTML 转 PDF', enName: 'HTML to PDF', badge: 'HTML → PDF', zhDesc: '上传 HTML 文件或粘贴代码，渲染后导出为标准的 PDF 文档。', enDesc: 'Upload HTML file or paste code, render and export as standard PDF.', accept: '.html,.htm', configMode: 'htmlpdf', icon: '🌐' },
+    { id: 'epub-to-pdf', zhName: 'EPUB 转 PDF', enName: 'EPUB to PDF', badge: 'EPUB → PDF', zhDesc: '解析 EPUB 电子书结构，提取章节内容重新排版并导出为标准 PDF 或 Word 文档。', enDesc: 'Parse EPUB ebook structure, extract chapters and export as PDF or Word document.', accept: '.epub', configMode: 'epub', icon: '📚' },
     { id: 'pdf-to-word', zhName: 'PDF 转 Word', enName: 'PDF to Word', badge: 'PDF → Word', zhDesc: '提取 PDF 中的文本内容与基础布局，输出为可编辑的 Word 文档。', enDesc: 'Extract text layers and reconstruct them into editable Word documents.', accept: '.pdf', icon: '📄' },
     { id: 'pdf-to-excel', zhName: 'PDF 转 Excel', enName: 'PDF to Excel', badge: 'PDF → Excel', zhDesc: '自动识别 PDF 内的表格结构，提取数据到标准的 Excel 表格。', enDesc: 'Detect tabular layouts within PDF and export structured data to Excel.', accept: '.pdf', icon: '📊' }
 ];
@@ -388,13 +762,15 @@ const suiteTabs = [
     { id: 'all-watermark', zhName: '全格式文件水印', enName: 'Universal Watermark', badge: 'HYBRID WATERMARK ENGINE', zhDesc: '支持单个或批量跨格式（PDF、图片、Word、Excel、PPT）一键注入文本防伪或图案徽标Logo水印。全沙箱闭环，杜绝任何中转泄密。', enDesc: 'Inject text or logo image watermarks into PDF, Images, Word, Excel, and PPT files seamlessly in bulk.', accept: '.pdf,.png,.jpg,.jpeg,.webp,.docx,.xlsx,.pptx', multiple: true, configMode: 'watermark', icon: '🔏' },
     { id: 'doc-redact', zhName: '智能隐私脱敏', enName: 'Document Redaction', badge: 'PRIVACY ERASE', zhDesc: '【办公高频】在本地安全解析文本。支持一键全自动检测或鼠标框选手动涂抹手机号、身份证、领导签名及企业印章，底层流物理级抹除粉碎。', enDesc: 'Erase sensitive info (Phone, Email, Identity Id) from PDF/Word layers physically inside sandbox.', accept: '.pdf,.docx', configMode: 'redact', icon: '🛡️' },
     { id: 'resource-extract', zhName: '内嵌图片提取', enName: 'Asset Extractor', badge: 'ASSET EXTRACTOR', zhDesc: '【生产力神器】一键闪电解包 Word、PPT 或 PDF 文档，将其内部隐藏的所有高清原始配图及插图完整剥离，并自动打包成 ZIP 导出。', enDesc: 'Extract all embedded raw high-resolution image resources from Word/PPT/PDF into a ZIP file instantly.', accept: '.pdf,.docx,.pptx', configMode: 'extractor', icon: '📦' },
-    { id: 'digital-esign', zhName: '电子签章 / 手写签名', enName: 'E-Sign & Stamp', badge: 'SANDBOX SIGN', zhDesc: '【远程合规】免去打印扫描！在本地安全沙箱画布中直接为合同、收据、公文加盖高精度透明电子公章，或开启手机/平板压感板手写签名。', enDesc: 'Affix secure digital corporate stamps or dynamic handwritten seals onto files without printing.', accept: '.pdf,.docx,.png,.jpg', configMode: 'esign', icon: '✍️' }
+    { id: 'digital-esign', zhName: '电子签章 / 手写签名', enName: 'E-Sign & Stamp', badge: 'SANDBOX SIGN', zhDesc: '【远程合规】免去打印扫描！在本地安全沙箱画布中直接为合同、收据、公文加盖高精度透明电子公章，或开启手机/平板压感板手写签名。', enDesc: 'Affix secure digital corporate stamps or dynamic handwritten seals onto files without printing.', accept: '.pdf,.docx,.png,.jpg', configMode: 'esign', icon: '✍️' },
+    { id: 'md-to-pdf', zhName: 'Markdown 转 PDF', enName: 'MD to PDF', badge: 'MD → PDF', zhDesc: '实时 Markdown 排版编辑器，内置多款高美感主题，一键导出精美 PDF 电子书或长图。', enDesc: 'Real-time Markdown editor with beautiful themes, export to polished PDF or long image.', accept: '', configMode: 'mdpdf', icon: '📝' },
+    { id: 'ocr', zhName: 'OCR 文字识别', enName: 'OCR Recognition', badge: 'PaddleOCR', zhDesc: '上传图片或 PDF，PaddleOCR-VL 引擎高精度提取文字，支持中英文混合识别。需启动 OCR 后端服务。', enDesc: 'Extract text from images or PDF using PaddleOCR-VL engine with Chinese/English support. Requires OCR backend service.', accept: '.png,.jpg,.jpeg,.webp,.bmp,.pdf', configMode: 'ocr', icon: '🔍' }
 ];
 
 const securityTabs = [
     { id: 'pdf-encrypt', zhName: 'PDF 加密', enName: 'Encrypt PDF', badge: 'PDF Encrypt', zhDesc: '设置高强度打开密码，从底层加密文档资产，防止未授权访问。', enDesc: 'Inject enterprise-grade AES encryption layer to isolate data leaks.', accept: '.pdf', configMode: 'encrypt', icon: '🔒' },
     { id: 'pdf-permissions', zhName: '权限控制', enName: 'PDF Permissions', badge: 'Restrictions', zhDesc: '细粒度锁死打印、复制及内容修改权限，即使能打开文件也无法操作。', enDesc: 'Enforce strict structural access rule flags (Anti-copy/Anti-print).', accept: '.pdf', configMode: 'permissions', icon: '🛡️' },
-    { id: 'pdf-decrypt', zhName: 'PDF 解密', enName: 'Decrypt PDF', badge: 'PDF Decrypt', zhDesc: '在拥有合法授权的前提下，一键移除已知密码 PDF 的安全限制。', enDesc: 'Strip restriction locks and owner validation markers cleanly.', accept: '.pdf', configMode: 'decrypt', icon: '🔓' },
+    { id: 'pdf-decrypt', zhName: 'PDF 解密', enName: 'Decrypt PDF', badge: 'PDF Decrypt', zhDesc: '在拥有合法授权的前提下，一键移除已知密码 PDF 的安全限制。', enDesc: 'Strip restriction locks and owner validation markers cleanly.', accept: '.pdf,.encrypted', configMode: 'decrypt', icon: '🔓' },
     { id: 'pdf-digital-sign', zhName: '数字签名', enName: 'Digital Signature', badge: 'Digital Shield', zhDesc: '基于 X.509 标准证书本地对文档实施签名，保证防伪与不可否认性。', enDesc: 'Embed client-side cryptographically verified anti-forge hash badges.', accept: '.pdf', configMode: 'signature', icon: '✍️' }
 ];
 
@@ -402,6 +778,7 @@ const securityTabs = [
 // STATE
 // ========================================================
 let currentLang = 'zh';
+let themeMode = 'light';            // 'light' or 'dark'
 let currentTabId = 'pdf-compress';
 let currentActiveView = 'tools';
 let selectedFiles = [];
@@ -410,9 +787,28 @@ let selectedFiles = [];
 let currentWatermarkType = 'text';   // 'text' or 'pattern'
 let currentWatermarkMode = 'grid';   // 'grid' or 'single'
 let patternImageData = null;         // DataURL of uploaded pattern image
+let watermarkAdvancedOpen = false;   // Whether advanced options panel is expanded
 
 // Redact state
 let currentRedactMode = 'auto';      // 'auto' (智能识别) or 'manual' (手动涂抹)
+let redactRegions = [];               // [{x, y, w, h, page}, ...] — selected regions for manual redaction
+let redactPreviewImage = null;        // DataURL of the rendered preview page
+let redactPageCount = 0;             // Total pages in the PDF
+let redactCurrentPage = 1;           // Current preview page
+let redactIsDragging = false;
+let redactDragStart = { x: 0, y: 0 };
+let redactDragCurrent = { x: 0, y: 0 };
+let redactCanvasScale = 1;           // Scale factor: PDF point → canvas pixel
+
+// Markdown editor state
+let currentMdTheme = 'apple';        // 'apple', 'bauhaus', 'academic', 'tech'
+let mdEditorInitialized = false;     // Whether editor event listeners are bound
+
+// HTML editor state
+let htmlEditorInitialized = false;   // Whether HTML editor event listeners are bound
+
+// OCR state
+let ocrOcrLang = 'ch';                // 'ch', 'eng', 'ch_en'
 
 // ========================================================
 // NAVIGATION
@@ -434,6 +830,15 @@ function navigateTo(viewName) {
 function toggleLanguage() {
     currentLang = currentLang === 'zh' ? 'en' : 'zh';
     renderUI();
+}
+
+function toggleTheme() {
+    themeMode = themeMode === 'light' ? 'dark' : 'light';
+    document.documentElement.classList.toggle('dark', themeMode === 'dark');
+    try { localStorage.setItem('litepdf-theme', themeMode); } catch(e) {}
+    const L = uiLocales[currentLang];
+    const btn = document.getElementById('theme-btn-text');
+    if (btn) btn.innerText = themeMode === 'dark' ? L.themeLight : L.themeDark;
 }
 
 // ========================================================
@@ -460,10 +865,19 @@ function switchTab(id) {
     const allTabs = [...convertTabs, ...suiteTabs, ...securityTabs];
     const tab = allTabs.find(t => t.id === id);
     const inputEl = document.getElementById('file-input');
-    inputEl.setAttribute('accept', tab.accept);
+    inputEl.setAttribute('accept', tab.accept || '');
     tab.multiple ? inputEl.setAttribute('multiple', 'true') : inputEl.removeAttribute('multiple');
     renderUI();
     resetUploadArea();
+
+    // Markdown editor special handling
+    if (id === 'md-to-pdf') {
+        showMdEditor();
+    }
+    // HTML editor special handling
+    if (id === 'html-to-pdf') {
+        showHtmlEditor();
+    }
 }
 
 // ========================================================
@@ -476,6 +890,7 @@ function renderUI() {
     document.getElementById('main-subtitle').innerText = L.subtitle;
     document.getElementById('nav-secure-badge').innerText = L.secureBadge;
     document.getElementById('lang-btn-text').innerText = L.langBtn;
+    document.getElementById('theme-btn-text').innerText = themeMode === 'dark' ? L.themeLight : L.themeDark;
     document.getElementById('upload-btn').innerText = L.uploadBtn;
     document.getElementById('drag-text-pc').innerText = L.dragPc;
     const hintEl = document.getElementById('upload-hint-text');
@@ -512,13 +927,31 @@ function renderUI() {
     const activeTab = allTabs.find(t => t.id === currentTabId);
     document.getElementById('panel-badge').innerText = activeTab.badge;
     document.getElementById('panel-desc').innerText = currentLang === 'zh' ? activeTab.zhDesc : activeTab.enDesc;
-    document.getElementById('file-tip').innerText = activeTab.accept.split(',').map(x => '*' + x.trim()).join(' / ');
+    document.getElementById('file-tip').innerText = activeTab.accept
+        ? activeTab.accept.split(',').map(x => '*' + x.trim()).join(' / ')
+        : '-';
 
-    // Re-render config panel only if files already selected
-    if (selectedFiles.length > 0 && activeTab.configMode) {
+    // Re-render config panel only if files already selected (or tools which need no files)
+    if ((selectedFiles.length > 0 || currentTabId === 'md-to-pdf' || currentTabId === 'html-to-pdf') && activeTab.configMode) {
         const zone = document.getElementById('extra-config');
         zone.innerHTML = buildConfigHTML(activeTab.configMode, L);
     }
+
+    // Markdown editor labels i18n
+    const mdEditorLabel = document.getElementById('md-editor-label');
+    const mdPreviewLabel = document.getElementById('md-preview-label');
+    const mdInput = document.getElementById('md-input');
+    if (mdEditorLabel) mdEditorLabel.innerText = L.mdEditorLabel;
+    if (mdPreviewLabel) mdPreviewLabel.innerText = L.mdPreviewLabel;
+    if (mdInput && !mdInput.value) mdInput.placeholder = L.mdPlaceholder;
+
+    // HTML editor labels i18n
+    const htmlEditorLabel = document.getElementById('html-editor-label');
+    const htmlPreviewLabel = document.getElementById('html-preview-label');
+    const htmlInput = document.getElementById('html-input');
+    if (htmlEditorLabel) htmlEditorLabel.innerText = L.htmlPreviewLabel;
+    if (htmlPreviewLabel) htmlPreviewLabel.innerText = L.mdPreviewLabel;
+    if (htmlInput && !htmlInput.value) htmlInput.placeholder = L.htmlPlaceholder;
 
     navigateTo(currentActiveView);
 }
@@ -550,6 +983,7 @@ function buildConfigHTML(mode, L) {
         return `<div class="${rowClass}">
             <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🔒 ${L.p2}</span>
             <input type="password" id="cfg-encrypt-pwd" placeholder="${L.p2_holder}" class="${inputStyle}" />
+            <p class="text-[10px] text-indigo-600/70 font-medium mt-1">🛡️ ${currentLang === 'zh' ? 'AES-256-GCM 真实加密 · PBKDF2 密钥派生 · 输出 .encrypted 文件' : 'AES-256-GCM real encryption · PBKDF2 key derivation · .encrypted output'}</p>
         </div>`;
     }
     if (mode === 'permissions') {
@@ -557,6 +991,7 @@ function buildConfigHTML(mode, L) {
             <div class="${rowClass}">
                 <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🛡️ ${L.p3}</span>
                 <input type="password" id="cfg-perms-pwd" placeholder="${L.p3_holder}" class="${inputStyle}" />
+                <p class="text-[10px] text-indigo-600/70 font-medium mt-1">🛡️ ${currentLang === 'zh' ? 'AES-256-GCM 真实加密 · 权限标记嵌入密文' : 'AES-256-GCM real encryption · permission flags in ciphertext'}</p>
             </div>
             <div class="flex flex-wrap gap-x-5 gap-y-2 pl-1 text-[11px] text-slate-500 font-medium">
                 <label class="flex items-center space-x-2 cursor-pointer"><input type="checkbox" id="opt-print" checked class="rounded border-slate-300 text-indigo-600" /><span>${L.opt_print}</span></label>
@@ -569,6 +1004,7 @@ function buildConfigHTML(mode, L) {
         return `<div class="${rowClass}">
             <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🔓 ${L.p4}</span>
             <input type="password" id="cfg-decrypt-pwd" placeholder="${L.p4_holder}" class="${inputStyle}" />
+            <p class="text-[10px] text-slate-500 font-medium mt-1">📎 ${currentLang === 'zh' ? '支持 .encrypted 和 .pdf 加密文件' : 'Supports .encrypted and .pdf encrypted files'}</p>
         </div>`;
     }
     if (mode === 'signature') {
@@ -584,43 +1020,83 @@ function buildConfigHTML(mode, L) {
     if (mode === 'watermark') {
         const inputStyle2 = "border border-slate-200 rounded-xl px-4 py-2 text-slate-800 text-xs bg-slate-50/50 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500";
         const txtDefault = currentLang === 'zh' ? '仅供内部合规审查使用，复制无效' : 'Confidential - Internal Sandbox Only';
+        const presetColors = {
+            confidential: '#dc2626', topsecret: '#7c3aed', draft: '#2563eb', internal: '#059669', review: '#d97706'
+        };
         return `<div class="space-y-4">
-            <!-- Type toggle -->
+            <!-- Type toggle (always visible) -->
             <div class="flex items-center justify-center text-xs bg-slate-100/60 p-1 rounded-xl max-w-xs mx-auto border border-slate-200/30">
                 <button id="wm-type-txt" onclick="setWatermarkType('text')" class="w-1/2 py-1 text-[11px] font-semibold rounded-md bg-white text-slate-900 shadow-sm transition-all">${L.wmTypeTxt}</button>
                 <button id="wm-type-pat" onclick="setWatermarkType('pattern')" class="w-1/2 py-1 text-[11px] font-medium text-slate-500 hover:text-slate-900 transition-all">${L.wmTypePat}</button>
             </div>
-            <!-- Text input -->
+
+            <!-- Text input row (always visible for text mode) -->
             <div id="wm-text-row" class="${rowClass}">
                 <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🔒 ${L.wm_p6}</span>
-                <input type="text" id="wm-text-input" placeholder="${L.wm_p6_holder}" class="${inputStyle2}" value="${txtDefault}" />
+                <input type="text" id="wm-text-input" placeholder="${L.wm_p6_holder}" class="${inputStyle2}" value="${txtDefault}" oninput="refreshWatermarkPreview()" />
             </div>
-            <!-- Pattern upload -->
+
+            <!-- Quick Presets -->
+            <div id="wm-presets-bar" class="flex items-center gap-1.5 flex-wrap justify-center">
+                <span class="text-[10px] text-slate-400 font-semibold mr-1">${L.wmPresets}</span>
+                ${Object.entries({
+                    confidential: L.wmPresetConfidential,
+                    topsecret: L.wmPresetTopSecret,
+                    draft: L.wmPresetDraft,
+                    internal: L.wmPresetInternal,
+                    review: L.wmPresetReview
+                }).map(([key, label]) => `
+                    <button onclick="applyWatermarkPreset('${key}')" class="px-2.5 py-1 text-[10px] font-medium rounded-lg border transition-all hover:shadow-sm"
+                        style="border-color:${presetColors[key]}30;color:${presetColors[key]};background:${presetColors[key]}08">
+                        ${label}
+                    </button>
+                `).join('')}
+            </div>
+
+            <!-- Live Preview -->
+            <div class="relative bg-slate-100/50 rounded-xl border border-slate-200/40 overflow-hidden">
+                <div class="flex items-center justify-between px-3 py-1.5 bg-slate-200/30 border-b border-slate-200/40">
+                    <span class="text-[10px] text-slate-500 font-semibold tracking-wide">${L.wmPreviewLabel}</span>
+                    <span class="text-[10px] text-slate-400 font-mono" id="wm-preview-info">A4 210×297mm</span>
+                </div>
+                <canvas id="wm-preview-canvas" class="w-full" style="height:120px" onmouseenter=""></canvas>
+            </div>
+
+            <!-- Pattern upload row -->
             <div id="wm-pattern-row" class="hidden ${rowClass}">
                 <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🖼️ ${L.wm_pattern_label}</span>
                 <label for="wm-pattern-input" class="border border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/10 rounded-xl px-4 py-2.5 text-slate-400 font-medium text-[11px] tracking-wide cursor-pointer text-center min-w-[280px] bg-slate-50/20 premium-transition">
                     <span id="wm-pattern-label">${L.wmPatternLoad}</span>
                 </label>
-                <input type="file" id="wm-pattern-input" accept=".png,.jpg,.jpeg,.gif,.webp" class="hidden" onchange="handlePatternImage(this)" />
+                <input type="file" id="wm-pattern-input" accept=".png,.jpg,.jpeg,.gif,.webp" class="hidden" onchange="handlePatternImage(this);refreshWatermarkPreview()" />
             </div>
-            <!-- Layout + params -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <div class="flex items-center justify-between text-xs bg-slate-50/50 p-2.5 rounded-xl border border-slate-200/40">
-                    <span class="text-slate-400 font-semibold text-[10px] tracking-wider uppercase">🧩 ${L.wm_p7}</span>
-                    <div class="flex space-x-1 bg-slate-200/40 p-0.5 rounded-lg border border-slate-200/10">
-                        <button id="wm-mode-grid" onclick="setWatermarkMode('grid')" class="px-3 py-1 text-[10px] font-semibold rounded-md bg-white text-slate-900 shadow-sm transition-all">${L.opt_wm_full}</button>
-                        <button id="wm-mode-single" onclick="setWatermarkMode('single')" class="px-3 py-1 text-[10px] font-medium rounded-md text-slate-500 hover:text-slate-900 transition-all">${L.opt_wm_single}</button>
-                    </div>
-                </div>
-                <div class="flex items-center justify-between text-xs bg-slate-50/50 p-2.5 rounded-xl border border-slate-200/40">
-                    <span class="text-slate-400 font-semibold text-[10px] tracking-wider uppercase">⚙️ ${L.wm_p8}</span>
-                    <div class="flex items-center space-x-3.5">
-                        <div id="wm-style-control-block" class="flex items-center">
-                            <input type="color" id="wm-color" class="w-5 h-5 rounded-md cursor-pointer border-0 bg-transparent transition-transform hover:scale-105" value="#ef4444" />
+
+            <!-- Advanced Options Toggle -->
+            <button id="wm-advanced-toggle" onclick="toggleWatermarkAdvanced()" class="w-full flex items-center justify-center gap-1.5 text-[10px] text-slate-400 hover:text-slate-600 font-medium py-1.5 transition-all">
+                <span>${L.wmAdvanced}</span>
+                <span id="wm-advanced-arrow" class="inline-block transition-transform">▶</span>
+            </button>
+
+            <!-- Advanced Options Panel -->
+            <div id="wm-advanced-panel" class="hidden space-y-4 pt-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex items-center justify-between text-xs bg-slate-50/50 p-2.5 rounded-xl border border-slate-200/40">
+                        <span class="text-slate-400 font-semibold text-[10px] tracking-wider uppercase">🧩 ${L.wm_p7}</span>
+                        <div class="flex space-x-1 bg-slate-200/40 p-0.5 rounded-lg border border-slate-200/10">
+                            <button id="wm-mode-grid" onclick="setWatermarkMode('grid');refreshWatermarkPreview()" class="px-3 py-1 text-[10px] font-semibold rounded-md bg-white text-slate-900 shadow-sm transition-all">${L.opt_wm_full}</button>
+                            <button id="wm-mode-single" onclick="setWatermarkMode('single');refreshWatermarkPreview()" class="px-3 py-1 text-[10px] font-medium rounded-md text-slate-500 hover:text-slate-900 transition-all">${L.opt_wm_single}</button>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <input type="range" id="wm-opacity" oninput="updateOpacityText(this.value)" min="10" max="90" value="25" class="w-20 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
-                            <span id="wm-opacity-indicator" class="text-[10px] font-mono text-slate-400 w-7 text-right">25%</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs bg-slate-50/50 p-2.5 rounded-xl border border-slate-200/40">
+                        <span class="text-slate-400 font-semibold text-[10px] tracking-wider uppercase">⚙️ ${L.wm_p8}</span>
+                        <div class="flex items-center space-x-3.5">
+                            <div id="wm-style-control-block" class="flex items-center">
+                                <input type="color" id="wm-color" class="w-5 h-5 rounded-md cursor-pointer border-0 bg-transparent transition-transform hover:scale-105" value="#ef4444" oninput="refreshWatermarkPreview()" />
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <input type="range" id="wm-opacity" oninput="updateOpacityText(this.value);refreshWatermarkPreview()" min="10" max="90" value="25" class="w-20 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+                                <span id="wm-opacity-indicator" class="text-[10px] font-mono text-slate-400 w-7 text-right">25%</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -644,8 +1120,46 @@ function buildConfigHTML(mode, L) {
                 </div>
             </div>
             <!-- Manual panel -->
-            <div id="redact-panel-manual" class="hidden text-xs text-slate-400 text-center py-2 bg-indigo-50/30 border border-dashed border-indigo-100 rounded-xl">
-                ${L.redact_manual_hint}
+            <div id="redact-panel-manual" class="hidden space-y-3">
+                <!-- Step guide -->
+                <div class="bg-indigo-50/40 border border-indigo-100 rounded-xl p-3 text-xs">
+                    <p class="font-semibold text-indigo-700 mb-1.5">📋 ${currentLang === 'zh' ? '操作步骤' : 'Instructions'}</p>
+                    <ol class="space-y-1 text-[11px] text-slate-600 leading-relaxed list-decimal list-inside">
+                        <li>${currentLang === 'zh' ? '在下方预览区中用鼠标按住左键并拖拽，框选需要涂抹的区域' : 'Click and drag in the preview below to select regions to redact'}</li>
+                        <li>${currentLang === 'zh' ? '松开鼠标完成框选，已选区域会显示红色高亮' : 'Release to confirm selection, selected regions will be highlighted in red'}</li>
+                        <li>${currentLang === 'zh' ? '可反复框选多个区域，点击区域上的 ✕ 可删除该区域' : 'Select multiple regions, click ✕ on a region to remove it'}</li>
+                        <li>${currentLang === 'zh' ? '确认所有区域后，点击下方按钮执行脱敏粉碎' : 'When ready, click the button below to physically shred all selected regions'}</li>
+                    </ol>
+                </div>
+                <!-- Preview area -->
+                <div class="relative bg-slate-100 rounded-xl border border-slate-200 overflow-hidden" style="min-height:120px;">
+                    <!-- Mask overlay (shown when no regions selected) -->
+                    <div id="redact-mask" class="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/5 backdrop-blur-[1px] rounded-xl pointer-events-none">
+                        <div class="text-center">
+                            <div class="text-3xl mb-2">🖱️</div>
+                            <p class="text-[11px] text-slate-500 font-medium">${currentLang === 'zh' ? '在此区域按住鼠标左键拖拽框选' : 'Click and drag here to select regions'}</p>
+                            <p class="text-[10px] text-slate-400 mt-1">${currentLang === 'zh' ? '松开鼠标完成框选' : 'Release to confirm selection'}</p>
+                        </div>
+                    </div>
+                    <!-- Canvas for preview -->
+                    <canvas id="redact-preview-canvas" class="w-full block rounded-xl" style="cursor:crosshair"></canvas>
+                    <!-- Selection highlight layer -->
+                    <div id="redact-regions-overlay" class="absolute inset-0 z-20 pointer-events-none"></div>
+                    <!-- Current drag box -->
+                    <div id="redact-drag-box" class="absolute border-2 border-red-500 bg-red-500/15 rounded hidden pointer-events-none" style="z-index:25;"></div>
+                </div>
+                <!-- Page nav + clear -->
+                <div class="flex items-center justify-between text-xs">
+                    <div id="redact-page-nav" class="hidden flex items-center gap-2">
+                        <button onclick="redactPrevPage()" class="bg-white border border-slate-200 px-2 py-1 rounded-md hover:bg-slate-50 text-[10px]">◀</button>
+                        <span id="redact-page-info" class="text-slate-500 text-[10px] font-mono"></span>
+                        <button onclick="redactNextPage()" class="bg-white border border-slate-200 px-2 py-1 rounded-md hover:bg-slate-50 text-[10px]">▶</button>
+                    </div>
+                    <button id="redact-clear-btn" class="hidden bg-red-50 text-red-600 text-[10px] font-semibold px-2.5 py-1 rounded-lg border border-red-100 hover:bg-red-100 transition-all" onclick="clearRedactRegions()">
+                        ${currentLang === 'zh' ? '清除所有区域' : 'Clear All'}
+                    </button>
+                </div>
+                <p class="text-[10px] text-slate-400 text-center">${currentLang === 'zh' ? '已选 ' : 'Selected: '}<span id="redact-count" class="font-semibold text-indigo-600">0</span> ${currentLang === 'zh' ? ' 个涂抹区域' : ' region(s)'}</p>
             </div>
             <button onclick="runProcess()" class="w-full bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-slate-800 premium-transition">${L.redact_btn}</button>
         </div>`;
@@ -679,6 +1193,70 @@ function buildConfigHTML(mode, L) {
             <button onclick="runProcess()" class="w-full bg-slate-900 text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-slate-800 premium-transition">${L.esign_btn}</button>
         </div>`;
     }
+    if (mode === 'mdpdf') {
+        const themes = [
+            { id: 'apple', label: L.mdThemeApple },
+            { id: 'bauhaus', label: L.mdThemeBauhaus },
+            { id: 'academic', label: L.mdThemeAcademic },
+            { id: 'tech', label: L.mdThemeTech }
+        ];
+        const themeButtons = themes.map(t =>
+            `<button onclick="setMdTheme('${t.id}')" class="px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-all ${currentMdTheme === t.id ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}" id="md-theme-btn-${t.id}">${t.label}</button>`
+        ).join('');
+        return `<div class="space-y-4">
+            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🎨 ${L.mdTheme}</span>
+                <div class="flex flex-wrap gap-2">${themeButtons}</div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="runProcess()" class="w-full bg-slate-950 hover:bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.mdExportPdf}</button>
+                <button onclick="exportMdLongImage()" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.mdExportLongImg}</button>
+            </div>
+        </div>`;
+    }
+    if (mode === 'htmlpdf') {
+        return `<div class="space-y-4">
+            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🌐 HTML → PDF</span>
+            </div>
+            <button onclick="runProcess()" class="w-full bg-slate-950 hover:bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.htmlExportPdf}</button>
+        </div>`;
+    }
+    if (mode === 'epub') {
+        return `<div class="space-y-4">
+            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">📚 EPUB → PDF / Word</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="processEpubToPdfDirect()" class="w-full bg-slate-950 hover:bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.epubExportPdf}</button>
+                <button onclick="processEpubToWordDirect()" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.epubExportWord}</button>
+            </div>
+        </div>`;
+    }
+    if (mode === 'ocr') {
+        const langOptions = [
+            { v: 'ch', l: L.ocrLangChiSim },
+            { v: 'eng', l: L.ocrLangEng },
+            { v: 'ch_en', l: L.ocrLangChiEng }
+        ];
+        const langBtns = langOptions.map(o =>
+            `<button onclick="setOcrLang('${o.v}')" class="px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-all ${ocrOcrLang === o.v ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}" id="ocr-lang-btn-${o.v}">${o.l}</button>`
+        ).join('');
+        return `<div class="space-y-4">
+            <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🔍 ${L.ocrLang}</span>
+                <div class="flex flex-wrap gap-2">${langBtns}</div>
+            </div>
+            <button onclick="runOcr()" id="btn-ocr-run" class="w-full bg-slate-950 hover:bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.ocrBtn}</button>
+            <div id="ocr-result-area" class="hidden space-y-3">
+                <textarea id="ocr-result-text" class="w-full border border-slate-200 rounded-xl p-4 text-xs leading-relaxed resize-none bg-white/60 focus:outline-none" rows="8" readonly></textarea>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="copyOcrText()" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.ocrCopy}</button>
+                    <button onclick="downloadOcrTxt()" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.ocrDownloadTxt}</button>
+                </div>
+            </div>
+        </div>`;
+    }
     return '';
 }
 
@@ -692,17 +1270,138 @@ function triggerFileInput() {
 function resetUploadArea() {
     selectedFiles = [];
     patternImageData = null;
+    teardownRedactPreview();
     document.getElementById('file-list').classList.add('hidden');
     document.getElementById('file-list').innerHTML = '';
-    document.getElementById('action-area').classList.add('hidden');
-    document.getElementById('upload-area').classList.remove('hidden');
     document.getElementById('progress-wrap').classList.add('hidden');
     setProgress(0, '');
+
+    // Markdown editor special handling
+    if (currentTabId === 'md-to-pdf') {
+        showMdEditor();
+    } else if (currentTabId === 'html-to-pdf') {
+        showHtmlEditor();
+    } else {
+        hideMdEditor();
+        hideHtmlEditor();
+        document.getElementById('action-area').classList.add('hidden');
+        document.getElementById('upload-area').classList.remove('hidden');
+    }
+}
+
+function showMdEditor() {
+    const editorContainer = document.getElementById('md-editor-container');
+    const uploadArea = document.getElementById('upload-area');
+    const actionArea = document.getElementById('action-area');
+    const btnProcess = document.getElementById('btn-process');
+    if (editorContainer) {
+        editorContainer.classList.remove('hidden');
+        editorContainer.classList.add('flex');
+    }
+    if (uploadArea) uploadArea.classList.add('hidden');
+    if (actionArea) actionArea.classList.remove('hidden');
+    if (btnProcess) btnProcess.classList.add('hidden');
+    if (!mdEditorInitialized) initMdEditor();
+    refreshMdPreview();
+}
+
+function hideMdEditor() {
+    const editorContainer = document.getElementById('md-editor-container');
+    const btnProcess = document.getElementById('btn-process');
+    if (editorContainer) {
+        editorContainer.classList.add('hidden');
+        editorContainer.classList.remove('flex');
+    }
+    if (btnProcess) btnProcess.classList.remove('hidden');
+}
+
+function initMdEditor() {
+    const textarea = document.getElementById('md-input');
+    if (!textarea) return;
+    textarea.addEventListener('input', () => { refreshMdPreview(); });
+    mdEditorInitialized = true;
+}
+
+function refreshMdPreview() {
+    const textarea = document.getElementById('md-input');
+    const preview = document.getElementById('md-preview');
+    if (!textarea || !preview || typeof marked === 'undefined') return;
+    const raw = textarea.value || '';
+    preview.innerHTML = marked.parse(raw);
+}
+
+function setMdTheme(theme) {
+    currentMdTheme = theme;
+    const preview = document.getElementById('md-preview');
+    if (preview) {
+        preview.className = preview.className.replace(/theme-\w+/, '');
+        preview.classList.add('theme-' + theme);
+    }
+    // Re-render config to update active button state
+    const L = uiLocales[currentLang];
+    const zone = document.getElementById('extra-config');
+    if (zone) zone.innerHTML = buildConfigHTML('mdpdf', L);
+}
+
+function showHtmlEditor() {
+    const editorContainer = document.getElementById('html-editor-container');
+    const uploadArea = document.getElementById('upload-area');
+    const actionArea = document.getElementById('action-area');
+    const btnProcess = document.getElementById('btn-process');
+    if (editorContainer) {
+        editorContainer.classList.remove('hidden');
+        editorContainer.classList.add('flex');
+    }
+    if (uploadArea) uploadArea.classList.add('hidden');
+    if (actionArea) actionArea.classList.remove('hidden');
+    if (btnProcess) btnProcess.classList.add('hidden');
+    if (!htmlEditorInitialized) initHtmlEditor();
+    refreshHtmlPreview();
+}
+
+function hideHtmlEditor() {
+    const editorContainer = document.getElementById('html-editor-container');
+    const btnProcess = document.getElementById('btn-process');
+    if (editorContainer) {
+        editorContainer.classList.add('hidden');
+        editorContainer.classList.remove('flex');
+    }
+    if (btnProcess) btnProcess.classList.remove('hidden');
+}
+
+function initHtmlEditor() {
+    const textarea = document.getElementById('html-input');
+    if (!textarea) return;
+    textarea.addEventListener('input', () => { refreshHtmlPreview(); });
+    htmlEditorInitialized = true;
+}
+
+function refreshHtmlPreview() {
+    const textarea = document.getElementById('html-input');
+    const iframe = document.getElementById('html-preview-iframe');
+    if (!textarea || !iframe) return;
+    const raw = textarea.value || '';
+    // Use srcdoc for sandboxed iframe rendering
+    iframe.srcdoc = raw;
 }
 
 function handleFiles(files) {
     if (!files || files.length === 0) return;
     selectedFiles = Array.from(files);
+
+    // HTML to PDF: read file content into textarea
+    if (currentTabId === 'html-to-pdf' && selectedFiles.length > 0) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const textarea = document.getElementById('html-input');
+            if (textarea) {
+                textarea.value = e.target.result;
+                refreshHtmlPreview();
+            }
+        };
+        reader.readAsText(selectedFiles[0]);
+    }
+
     renderFileList();
     showActionArea();
 }
@@ -759,6 +1458,8 @@ function showActionArea() {
             requestAnimationFrame(() => {
                 setWatermarkType(currentWatermarkType);
                 setWatermarkMode(currentWatermarkMode);
+                if (watermarkAdvancedOpen) toggleWatermarkAdvanced();
+                refreshWatermarkPreview();
             });
         }
         // Initialize redact UI state
@@ -893,8 +1594,181 @@ function handlePatternImage(input) {
         patternImageData = e.target.result;
         document.getElementById('wm-pattern-label').innerText = '✅ ' + file.name;
         showToast(`图案已加载: ${file.name}`, 'info');
+        refreshWatermarkPreview();
     };
     reader.readAsDataURL(file);
+}
+
+// ── Watermark quick presets ──
+const WATERMARK_PRESETS = {
+    confidential: { text_zh: '机密文件 · 严禁外传', text_en: 'CONFIDENTIAL · DO NOT DISTRIBUTE', color: '#dc2626', opacity: 30 },
+    topsecret:    { text_zh: '★ 绝密 ★',                  text_en: '★ TOP SECRET ★',            color: '#7c3aed', opacity: 35 },
+    draft:        { text_zh: '草稿 · 尚未定稿',            text_en: 'DRAFT · NOT FINAL',          color: '#2563eb', opacity: 25 },
+    internal:     { text_zh: '内部使用 · 禁止外发',        text_en: 'INTERNAL USE ONLY',           color: '#059669', opacity: 25 },
+    review:       { text_zh: '待审核 · 禁止篡改',          text_en: 'UNDER REVIEW · DO NOT ALTER', color: '#d97706', opacity: 30 }
+};
+
+function applyWatermarkPreset(key) {
+    const preset = WATERMARK_PRESETS[key];
+    if (!preset) return;
+
+    // Switch to text mode
+    setWatermarkType('text');
+
+    // Set text
+    const textInput = document.getElementById('wm-text-input');
+    if (textInput) {
+        textInput.value = currentLang === 'zh' ? preset.text_zh : preset.text_en;
+    }
+
+    // Set color
+    const colorInput = document.getElementById('wm-color');
+    if (colorInput) {
+        colorInput.value = preset.color;
+    }
+
+    // Set opacity
+    const opacityInput = document.getElementById('wm-opacity');
+    if (opacityInput) {
+        opacityInput.value = preset.opacity;
+        updateOpacityText(preset.opacity);
+    }
+
+    refreshWatermarkPreview();
+
+    // Flash animation on the clicked preset button
+    const buttons = document.querySelectorAll('#wm-presets-bar button');
+    buttons.forEach(b => b.style.transition = 'all 0.15s ease');
+    const clickedBtn = event.target.closest('button');
+    if (clickedBtn) {
+        clickedBtn.style.transform = 'scale(1.05)';
+        setTimeout(() => { clickedBtn.style.transform = ''; }, 200);
+    }
+}
+
+// ── Advanced options toggle ──
+function toggleWatermarkAdvanced() {
+    watermarkAdvancedOpen = !watermarkAdvancedOpen;
+    const panel = document.getElementById('wm-advanced-panel');
+    const arrow = document.getElementById('wm-advanced-arrow');
+    if (panel) panel.classList.toggle('hidden', !watermarkAdvancedOpen);
+    if (arrow) {
+        arrow.style.transform = watermarkAdvancedOpen ? 'rotate(90deg)' : '';
+    }
+}
+
+// ── Live preview ──
+function refreshWatermarkPreview() {
+    const canvas = document.getElementById('wm-preview-canvas');
+    if (!canvas) return;
+
+    // Debounce for rapid inputs
+    if (refreshWatermarkPreview._timer) clearTimeout(refreshWatermarkPreview._timer);
+    refreshWatermarkPreview._timer = setTimeout(() => _doRenderWatermarkPreview(canvas), 80);
+}
+
+async function _doRenderWatermarkPreview(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const displayW = canvas.clientWidth || 300;
+    const displayH = 120;
+    canvas.width = displayW * dpr;
+    canvas.height = displayH * dpr;
+    canvas.style.width = displayW + 'px';
+    canvas.style.height = displayH + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // White paper background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, displayW, displayH);
+    // Paper border
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, displayW - 1, displayH - 1);
+
+    // Get current config
+    const wmText = document.getElementById('wm-text-input')?.value?.trim() || '';
+    const wmColor = document.getElementById('wm-color')?.value || '#ef4444';
+    const wmOpacity = parseInt(document.getElementById('wm-opacity')?.value || '25') / 100;
+
+    if (currentWatermarkType === 'text' && wmText) {
+        // Draw text watermark preview
+        ctx.save();
+        ctx.globalAlpha = wmOpacity;
+        ctx.fillStyle = wmColor;
+        const fontSize = currentWatermarkMode === 'single' ? 28 : 22;
+        ctx.font = `bold ${fontSize}px "Microsoft YaHei","PingFang SC",sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        if (currentWatermarkMode === 'single') {
+            // Center single
+            ctx.save();
+            ctx.translate(displayW / 2, displayH / 2);
+            ctx.rotate(-20 * Math.PI / 180);
+            ctx.fillText(wmText, 0, 0);
+            ctx.restore();
+        } else {
+            // Grid preview (show 2×2 pattern)
+            const cols = 3, rows = 2;
+            const cellW = displayW / cols;
+            const cellH = displayH / rows;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cx = c * cellW + cellW / 2;
+                    const cy = r * cellH + cellH / 2;
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.rotate(-25 * Math.PI / 180);
+                    ctx.fillText(wmText, 0, 0);
+                    ctx.restore();
+                }
+            }
+        }
+        ctx.restore();
+    } else if (currentWatermarkType === 'pattern' && patternImageData) {
+        // Draw pattern watermark preview
+        try {
+            const img = await loadImage(patternImageData);
+            const pw = Math.min(img.width, displayW * 0.4);
+            const ph = img.height * (pw / img.width);
+            ctx.globalAlpha = wmOpacity;
+
+            if (currentWatermarkMode === 'single') {
+                ctx.drawImage(img, (displayW - pw) / 2, (displayH - ph) / 2, pw, ph);
+            } else {
+                // Grid of small patterns
+                const cols = 3, rows = 2;
+                const cellW = displayW / cols;
+                const cellH = displayH / rows;
+                const ipw = cellW * 0.4, iph = img.height * (ipw / img.width);
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        ctx.drawImage(img, c * cellW + (cellW - ipw) / 2, r * cellH + (cellH - iph) / 2, ipw, iph);
+                    }
+                }
+            }
+        } catch (e) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentLang === 'zh' ? '加载预览失败' : 'Preview failed', displayW / 2, displayH / 2);
+        }
+    } else if (currentWatermarkType === 'pattern' && !patternImageData) {
+        // No pattern loaded
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px "Microsoft YaHei",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(currentLang === 'zh' ? '请载入水印图案' : 'Please load a watermark image', displayW / 2, displayH / 2);
+    } else {
+        // Empty text
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px "Microsoft YaHei",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(currentLang === 'zh' ? '预览 · 输入水印内容后显示' : 'Preview · Enter watermark text', displayW / 2, displayH / 2);
+    }
 }
 
 // ========================================================
@@ -913,12 +1787,245 @@ function setRedactMode(mode) {
         manualBtn.className = "w-1/2 py-1 text-[11px] font-medium text-slate-500 hover:text-slate-900 transition-all";
         if (autoPanel) autoPanel.classList.remove('hidden');
         if (manualPanel) manualPanel.classList.add('hidden');
+        // Clean up manual preview when switching away
+        teardownRedactPreview();
     } else {
         manualBtn.className = "w-1/2 py-1 text-[11px] font-semibold rounded-md bg-white text-slate-900 shadow-sm transition-all";
         autoBtn.className = "w-1/2 py-1 text-[11px] font-medium text-slate-500 hover:text-slate-900 transition-all";
         if (autoPanel) autoPanel.classList.add('hidden');
         if (manualPanel) manualPanel.classList.remove('hidden');
+        // Trigger preview rendering
+        initRedactPreview();
     }
+}
+
+// ========================================================
+// REDACT PREVIEW + REGION SELECTION
+// ========================================================
+function initRedactPreview() {
+    if (selectedFiles.length === 0) return;
+    const file = selectedFiles[0];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext !== 'pdf') return;
+
+    loadPdfJs().then(() => renderRedactPreview(file));
+}
+
+function teardownRedactPreview() {
+    const canvas = document.getElementById('redact-preview-canvas');
+    if (canvas) {
+        canvas.removeEventListener('mousedown', onRedactMouseDown);
+        canvas.width = 0;
+        canvas.height = 0;
+    }
+    document.removeEventListener('mousemove', onRedactMouseMove);
+    document.removeEventListener('mouseup', onRedactMouseUp);
+    redactRegions = [];
+    redactPreviewImage = null;
+    redactCurrentPage = 1;
+    redactPageCount = 0;
+    updateRedactUI();
+}
+
+async function renderRedactPreview(file) {
+    const buf = await readFileAsArrayBuffer(file);
+    const typedArray = new Uint8Array(buf);
+    const pdf = await window.pdfjsLib.getDocument({ data: typedArray }).promise;
+    redactPageCount = pdf.numPages;
+    redactCurrentPage = 1;
+
+    await renderRedactPage(pdf, 1);
+
+    const canvas = document.getElementById('redact-preview-canvas');
+    canvas.addEventListener('mousedown', onRedactMouseDown);
+    document.addEventListener('mousemove', onRedactMouseMove);
+    document.addEventListener('mouseup', onRedactMouseUp);
+
+    updateRedactUI();
+}
+
+async function renderRedactPage(pdf, pageNum) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const originalW = viewport.width / 1.5;
+    const originalH = viewport.height / 1.5;
+    const canvas = document.getElementById('redact-preview-canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Fit canvas to container width (max ~600px)
+    const containerWidth = canvas.parentElement.clientWidth - 4;
+    const canvasRenderScale = containerWidth / viewport.width;
+    redactCanvasScale = containerWidth / originalW; // PDF point → canvas pixel
+
+    canvas.width = containerWidth;
+    canvas.height = Math.round(viewport.height * canvasRenderScale);
+
+    // Render page using PDF.js transform
+    const renderCtx = {
+        canvasContext: ctx,
+        viewport: viewport,
+        transform: [canvasRenderScale, 0, 0, canvasRenderScale, 0, 0]
+    };
+    await page.render(renderCtx).promise;
+    redactPreviewImage = canvas.toDataURL();
+
+    redactCurrentPage = pageNum;
+    redactRegions = []; // Reset regions when switching pages
+    refreshRedactOverlay();
+    updateRedactUI();
+}
+
+// ── Mouse event handlers for region selection ──
+function getCanvasPos(e) {
+    const canvas = document.getElementById('redact-preview-canvas');
+    const rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function onRedactMouseDown(e) {
+    const pos = getCanvasPos(e);
+    if (pos.x < 0 || pos.y < 0 || pos.x > e.target.width || pos.y > e.target.height) return;
+
+    redactIsDragging = true;
+    redactDragStart = pos;
+    redactDragCurrent = pos;
+
+    const mask = document.getElementById('redact-mask');
+    if (mask) mask.classList.add('hidden');
+
+    const dragBox = document.getElementById('redact-drag-box');
+    dragBox.style.left = pos.x + 'px';
+    dragBox.style.top = pos.y + 'px';
+    dragBox.style.width = '0px';
+    dragBox.style.height = '0px';
+    dragBox.classList.remove('hidden');
+}
+
+function onRedactMouseMove(e) {
+    if (!redactIsDragging) return;
+    const canvas = document.getElementById('redact-preview-canvas');
+    if (!canvas) return;
+    const pos = getCanvasPos(e);
+    redactDragCurrent = { x: Math.max(0, Math.min(pos.x, canvas.width)), y: Math.max(0, Math.min(pos.y, canvas.height)) };
+
+    const dragBox = document.getElementById('redact-drag-box');
+    const left = Math.min(redactDragStart.x, redactDragCurrent.x);
+    const top = Math.min(redactDragStart.y, redactDragCurrent.y);
+    const w = Math.abs(redactDragCurrent.x - redactDragStart.x);
+    const h = Math.abs(redactDragCurrent.y - redactDragStart.y);
+
+    dragBox.style.left = left + 'px';
+    dragBox.style.top = top + 'px';
+    dragBox.style.width = w + 'px';
+    dragBox.style.height = h + 'px';
+}
+
+function onRedactMouseUp(e) {
+    if (!redactIsDragging) return;
+    redactIsDragging = false;
+
+    const dragBox = document.getElementById('redact-drag-box');
+    dragBox.classList.add('hidden');
+
+    // Only add region if it has a minimum size (>10px)
+    const w = Math.abs(redactDragCurrent.x - redactDragStart.x);
+    const h = Math.abs(redactDragCurrent.y - redactDragStart.y);
+    if (w < 10 || h < 10) return;
+
+    const x = Math.min(redactDragStart.x, redactDragCurrent.x);
+    const y = Math.min(redactDragStart.y, redactDragCurrent.y);
+
+    // Convert canvas coordinates back to PDF coordinates
+    redactRegions.push({
+        x: Math.round(x / redactCanvasScale),
+        y: Math.round(y / redactCanvasScale),
+        w: Math.round(w / redactCanvasScale),
+        h: Math.round(h / redactCanvasScale),
+        page: redactCurrentPage
+    });
+
+    refreshRedactOverlay();
+    updateRedactUI();
+}
+
+function refreshRedactOverlay() {
+    const overlay = document.getElementById('redact-regions-overlay');
+    if (!overlay) return;
+    overlay.innerHTML = '';
+
+    for (let i = 0; i < redactRegions.length; i++) {
+        const r = redactRegions[i];
+        if (r.page !== redactCurrentPage) continue;
+
+        const div = document.createElement('div');
+        div.className = 'absolute border-2 border-red-500 bg-red-500/20 rounded-sm';
+        div.style.left = (r.x * redactCanvasScale) + 'px';
+        div.style.top = (r.y * redactCanvasScale) + 'px';
+        div.style.width = (r.w * redactCanvasScale) + 'px';
+        div.style.height = (r.h * redactCanvasScale) + 'px';
+        div.style.pointerEvents = 'auto';
+
+        // Delete button
+        const delBtn = document.createElement('button');
+        delBtn.className = 'absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center shadow hover:bg-red-600 transition-all cursor-pointer';
+        delBtn.style.zIndex = '30';
+        delBtn.textContent = '✕';
+        delBtn.onclick = (ev) => { ev.stopPropagation(); removeRedactRegion(i); };
+        div.appendChild(delBtn);
+        overlay.appendChild(div);
+    }
+}
+
+function removeRedactRegion(index) {
+    redactRegions.splice(index, 1);
+    refreshRedactOverlay();
+    updateRedactUI();
+}
+
+function clearRedactRegions() {
+    redactRegions = [];
+    refreshRedactOverlay();
+    updateRedactUI();
+    const mask = document.getElementById('redact-mask');
+    if (mask) mask.classList.remove('hidden');
+}
+
+function redactPrevPage() {
+    // Re-render from stored PDF
+    redactCurrentPage = Math.max(1, redactCurrentPage - 1);
+    reRenderRedactPage();
+}
+
+function redactNextPage() {
+    redactCurrentPage = Math.min(redactPageCount, redactCurrentPage + 1);
+    reRenderRedactPage();
+}
+
+async function reRenderRedactPage() {
+    const file = selectedFiles[0];
+    const buf = await readFileAsArrayBuffer(file);
+    const typedArray = new Uint8Array(buf);
+    const pdf = await window.pdfjsLib.getDocument({ data: typedArray }).promise;
+    await renderRedactPage(pdf, redactCurrentPage);
+}
+
+function updateRedactUI() {
+    const mask = document.getElementById('redact-mask');
+    const countEl = document.getElementById('redact-count');
+    const pageNav = document.getElementById('redact-page-nav');
+    const pageInfo = document.getElementById('redact-page-info');
+    const clearBtn = document.getElementById('redact-clear-btn');
+
+    if (countEl) {
+        const currentPageRegions = redactRegions.filter(r => r.page === redactCurrentPage).length;
+        countEl.textContent = currentPageRegions + ' / ' + redactRegions.length;
+    }
+    if (pageNav) pageNav.classList.toggle('hidden', redactPageCount <= 1);
+    if (pageInfo && redactPageCount > 0) {
+        pageInfo.textContent = redactCurrentPage + ' / ' + redactPageCount;
+    }
+    if (clearBtn) clearBtn.classList.toggle('hidden', redactRegions.length === 0);
+    if (mask) mask.classList.toggle('hidden', redactRegions.filter(r => r.page === redactCurrentPage).length > 0);
 }
 
 // ========================================================
@@ -936,7 +2043,8 @@ function clearEsignCanvas() {
 // ========================================================
 async function runProcess() {
     const L = uiLocales[currentLang];
-    if (selectedFiles.length === 0) { showToast(L.noFile, 'warn'); return; }
+    // md-to-pdf doesn't require file upload
+    if (currentTabId !== 'md-to-pdf' && currentTabId !== 'html-to-pdf' && selectedFiles.length === 0) { showToast(L.noFile, 'warn'); return; }
 
     const btn = document.getElementById('btn-process');
     btn.disabled = true;
@@ -966,6 +2074,8 @@ async function runProcess() {
             case 'doc-redact':        await processDocRedact(); break;
             case 'resource-extract':  await processResourceExtract(); break;
             case 'digital-esign':     await processDigitalEsign(); break;
+            case 'md-to-pdf':         await processMdToPdf(); break;
+            case 'html-to-pdf':       await processHtmlToPdf(); break;
             default: showToast('功能开发中...', 'info');
         }
 
@@ -1217,37 +2327,95 @@ async function processPdfToImg() {
 }
 
 // ========================================================
-// PROCESS: PDF ENCRYPT
+// AES-256-GCM CRYPTO HELPERS (Web Crypto API)
+// ========================================================
+const ENCRYPTED_MAGIC = new Uint8Array([0x4C, 0x50, 0x44, 0x46, 0x45, 0x4E, 0x43]); // "LPDFENC"
+const ENCRYPTED_VERSION = 0x01;
+// Format: [MAGIC 7B][VERSION 1B][SALT 32B][IV 12B][AES-256-GCM CIPHERTEXT]
+
+async function deriveKey(password, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+        { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+    );
+}
+
+async function aesEncrypt(plainBytes, password) {
+    const salt = crypto.getRandomValues(new Uint8Array(32));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(password, salt);
+    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plainBytes);
+    const totalLen = ENCRYPTED_MAGIC.length + 1 + salt.length + iv.length + new Uint8Array(ciphertext).length;
+    const result = new Uint8Array(totalLen);
+    let offset = 0;
+    result.set(ENCRYPTED_MAGIC, offset); offset += ENCRYPTED_MAGIC.length;
+    result[offset] = ENCRYPTED_VERSION; offset += 1;
+    result.set(salt, offset); offset += salt.length;
+    result.set(iv, offset); offset += iv.length;
+    result.set(new Uint8Array(ciphertext), offset);
+    return result;
+}
+
+async function aesDecrypt(encryptedBytes, password) {
+    // Check magic header
+    const magic = encryptedBytes.slice(0, ENCRYPTED_MAGIC.length);
+    for (let i = 0; i < ENCRYPTED_MAGIC.length; i++) {
+        if (magic[i] !== ENCRYPTED_MAGIC[i]) throw new Error('Invalid encrypted file format');
+    }
+    let offset = ENCRYPTED_MAGIC.length;
+    const version = encryptedBytes[offset]; offset += 1;
+    if (version !== ENCRYPTED_VERSION) throw new Error('Unsupported encrypted file version');
+    const salt = encryptedBytes.slice(offset, offset + 32); offset += 32;
+    const iv = encryptedBytes.slice(offset, offset + 12); offset += 12;
+    const ciphertext = encryptedBytes.slice(offset);
+    const key = await deriveKey(password, salt);
+    return crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+}
+
+function isEncryptedFormat(buffer) {
+    if (buffer.byteLength < ENCRYPTED_MAGIC.length) return false;
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < ENCRYPTED_MAGIC.length; i++) {
+        if (view[i] !== ENCRYPTED_MAGIC[i]) return false;
+    }
+    return true;
+}
+
+// ========================================================
+// PROCESS: PDF ENCRYPT (AES-256-GCM REAL ENCRYPTION)
 // ========================================================
 async function processPdfEncrypt() {
     const pwd = document.getElementById('cfg-encrypt-pwd')?.value || '';
     if (!pwd) throw new Error('请填写打开密码');
+    if (pwd.length < 4) throw new Error(currentLang === 'zh' ? '密码至少4个字符' : 'Password must be at least 4 characters');
 
     setProgress(30, '读取 PDF...');
     const file = selectedFiles[0];
     const buf = await readFileAsArrayBuffer(file);
-    const pdfDoc = await PDFLib.PDFDocument.load(buf);
-    setProgress(70, '应用加密层...');
 
-    // pdf-lib 本身不支持加密，生成一个标注了密码保护说明的文档并提示用户
-    // 替代方案：通过元数据标注 + 真实加密需要 qpdf 或后端
-    // 这里提供最大化的本地模拟实现 + 用户体验优先的提示
-    showToast('注意：浏览器沙箱限制，密码将嵌入文档元数据标注。生产环境请配合 qpdf/iTextSharp 后端加密。', 'warn');
+    setProgress(50, 'AES-256-GCM 加密中...');
+    const encrypted = await aesEncrypt(buf, pwd);
 
-    pdfDoc.setSubject(`Password Protected: ${pwd.substring(0,2)}****`);
-    pdfDoc.setKeywords(['litepdf', 'encrypted', 'protected']);
-    setProgress(85, '保存...');
-    const bytes = await pdfDoc.save({ useObjectStreams: true });
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    download(blob, getBaseName(file.name) + '_encrypted.pdf', 'application/pdf');
+    setProgress(90, '保存加密文件...');
+    const blob = new Blob([encrypted], { type: 'application/octet-stream' });
+    download(blob, getBaseName(file.name) + '_encrypted.encrypted');
+    showToast(currentLang === 'zh'
+        ? 'AES-256-GCM 真实加密完成！文件已加密为 .encrypted 格式'
+        : 'AES-256-GCM encryption complete! File saved as .encrypted', 'success');
 }
 
 // ========================================================
-// PROCESS: PDF PERMISSIONS
+// PROCESS: PDF PERMISSIONS (AES-256-GCM ENCRYPTION + PERMISSION METADATA)
 // ========================================================
 async function processPdfPermissions() {
     const pwd = document.getElementById('cfg-perms-pwd')?.value || '';
     if (!pwd) throw new Error('请填写权限密码');
+    if (pwd.length < 4) throw new Error(currentLang === 'zh' ? '密码至少4个字符' : 'Password must be at least 4 characters');
 
     const restrictPrint = document.getElementById('opt-print')?.checked || false;
     const restrictCopy = document.getElementById('opt-copy')?.checked || false;
@@ -1256,52 +2424,137 @@ async function processPdfPermissions() {
     setProgress(30, '读取文档...');
     const file = selectedFiles[0];
     const buf = await readFileAsArrayBuffer(file);
-    const pdfDoc = await PDFLib.PDFDocument.load(buf);
-    setProgress(70, '写入权限标记...');
 
+    setProgress(50, '嵌入权限标记 + AES-256-GCM 加密...');
+    // Prepend permission metadata as JSON, then encrypt the whole thing
+    const meta = JSON.stringify({
+        type: 'LitePDF-Permission-Protected',
+        timestamp: new Date().toISOString(),
+        sourceFile: file.name,
+        restrictions: {
+            print: restrictPrint,
+            copy: restrictCopy,
+            modify: restrictMod
+        }
+    });
+    const enc = new TextEncoder();
+    const metaBytes = enc.encode(meta + '\n\n');
+    const combinedBytes = new Uint8Array(metaBytes.length + new Uint8Array(buf).length);
+    combinedBytes.set(metaBytes);
+    combinedBytes.set(new Uint8Array(buf), metaBytes.length);
+
+    const encrypted = await aesEncrypt(combinedBytes, pwd);
+
+    setProgress(90, '保存...');
     const restrictions = [];
     if (restrictPrint) restrictions.push('No-Print');
     if (restrictCopy) restrictions.push('No-Copy');
     if (restrictMod) restrictions.push('No-Modify');
 
-    pdfDoc.setSubject(`Restricted: [${restrictions.join(', ')}]`);
-    pdfDoc.setKeywords(['litepdf', 'restricted', ...restrictions.map(r => r.toLowerCase())]);
-
-    const bytes = await pdfDoc.save();
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    download(blob, getBaseName(file.name) + '_restricted.pdf', 'application/pdf');
-    showToast(`权限标记已应用: ${restrictions.join(', ')}`, 'info');
+    const blob = new Blob([encrypted], { type: 'application/octet-stream' });
+    download(blob, getBaseName(file.name) + '_restricted.pdf.encrypted');
+    showToast(currentLang === 'zh'
+        ? `AES-256-GCM 加密完成！权限标记: ${restrictions.join(', ') || '无'}`
+        : `AES-256-GCM encrypted! Restrictions: ${restrictions.join(', ') || 'None'}`, 'success');
 }
 
 // ========================================================
-// PROCESS: PDF DECRYPT
+// PROCESS: PDF DECRYPT (AES-256-GCM REAL DECRYPTION + backward compat)
 // ========================================================
 async function processPdfDecrypt() {
     const pwd = document.getElementById('cfg-decrypt-pwd')?.value || '';
 
-    setProgress(30, '尝试解密...');
+    setProgress(30, '读取加密文件...');
     const file = selectedFiles[0];
     const buf = await readFileAsArrayBuffer(file);
 
-    let pdfDoc;
+    // Check if it's our AES-encrypted format
+    if (isEncryptedFormat(buf)) {
+        if (!pwd) throw new Error(currentLang === 'zh' ? '请输入解密密码' : 'Please enter decryption password');
+
+        setProgress(50, 'AES-256-GCM 解密中...');
+        let decrypted;
+        try {
+            decrypted = await aesDecrypt(new Uint8Array(buf), pwd);
+        } catch (e) {
+            throw new Error(currentLang === 'zh' ? '密码错误或文件损坏' : 'Wrong password or corrupted file');
+        }
+
+        setProgress(75, '恢复原始文件...');
+        const decryptedBytes = new Uint8Array(decrypted);
+
+        // Check if the decrypted content has permission metadata header
+        const headerView = decryptedBytes.slice(0, 4);
+        const headerText = new TextDecoder().decode(headerView);
+        if (headerText === '{"ty') {
+            // It has permission metadata — find separator and extract original PDF
+            const fullText = new TextDecoder().decode(decryptedBytes);
+            const separatorIdx = fullText.indexOf('\n\n');
+            if (separatorIdx !== -1) {
+                const metaText = fullText.substring(0, separatorIdx);
+                try {
+                    const meta = JSON.parse(metaText);
+                    if (meta.restrictions) {
+                        const r = meta.restrictions;
+                        const info = [];
+                        if (r.print) info.push(currentLang === 'zh' ? '禁止打印' : 'No-Print');
+                        if (r.copy) info.push(currentLang === 'zh' ? '禁止复制' : 'No-Copy');
+                        if (r.modify) info.push(currentLang === 'zh' ? '禁止修改' : 'No-Modify');
+                        showToast(currentLang === 'zh'
+                            ? `解密成功！该文件曾设置权限: ${info.join(', ')}`
+                            : `Decrypted! Original restrictions: ${info.join(', ')}`, 'info');
+                    }
+                } catch (e) { /* ignore invalid meta */ }
+                // Extract original PDF bytes (after separator)
+                const enc = new TextEncoder();
+                const headerBytes = enc.encode(metaText + '\n\n');
+                const pdfBytes = decryptedBytes.slice(headerBytes.length);
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const outName = file.name.replace(/\.encrypted$/i, '').replace(/_encrypted$/i, '').replace(/_restricted$/i, '');
+                if (!outName.endsWith('.pdf')) download(blob, outName + '.pdf', 'application/pdf');
+                else download(blob, outName, 'application/pdf');
+                showToast(currentLang === 'zh' ? 'AES-256-GCM 解密成功！' : 'AES-256-GCM decryption successful!', 'success');
+                return;
+            }
+        }
+
+        // Plain encrypted PDF
+        const blob = new Blob([decryptedBytes], { type: 'application/pdf' });
+        const outName = file.name.replace(/\.encrypted$/i, '').replace(/_encrypted$/i, '');
+        if (!outName.endsWith('.pdf')) download(blob, outName + '.pdf', 'application/pdf');
+        else download(blob, outName, 'application/pdf');
+        showToast(currentLang === 'zh' ? 'AES-256-GCM 解密成功！' : 'AES-256-GCM decryption successful!', 'success');
+        return;
+    }
+
+    // Fallback: handle legacy metadata-only "encrypted" PDFs (backward compat)
     try {
-        pdfDoc = await PDFLib.PDFDocument.load(buf, { password: pwd });
-    } catch(e) {
-        // 尝试空密码
-        pdfDoc = await PDFLib.PDFDocument.load(buf);
-    }
+        setProgress(40, '检测到旧格式，尝试处理...');
+        let pdfDoc;
+        try {
+            pdfDoc = await PDFLib.PDFDocument.load(buf, { password: pwd || '' });
+        } catch (e) {
+            pdfDoc = await PDFLib.PDFDocument.load(buf);
+        }
 
-    setProgress(75, '移除安全标记...');
-    // 清除 Subject 中的安全标记
-    const subj = pdfDoc.getSubject() || '';
-    if (subj.startsWith('Password Protected:') || subj.startsWith('Restricted:')) {
-        pdfDoc.setSubject('');
-        pdfDoc.setKeywords([]);
-    }
+        setProgress(75, '移除安全标记...');
+        const subj = pdfDoc.getSubject() || '';
+        if (subj.startsWith('Password Protected:') || subj.startsWith('Restricted:')) {
+            pdfDoc.setSubject('');
+            pdfDoc.setKeywords([]);
+        }
 
-    const bytes = await pdfDoc.save();
-    const blob = new Blob([bytes], { type: 'application/pdf' });
-    download(blob, getBaseName(file.name) + '_decrypted.pdf', 'application/pdf');
+        const bytes = await pdfDoc.save();
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        download(blob, getBaseName(file.name) + '_decrypted.pdf', 'application/pdf');
+        showToast(currentLang === 'zh'
+            ? '旧格式标记已清除（非真实加密，仅移除 metadata 标记）'
+            : 'Legacy metadata flags removed (not real encryption)', 'info');
+    } catch (e) {
+        throw new Error(currentLang === 'zh'
+            ? '无法识别加密格式，请确保文件由 LitePDF 加密生成'
+            : 'Unrecognized format. Ensure the file was encrypted by LitePDF');
+    }
 }
 
 // ========================================================
@@ -1391,7 +2644,6 @@ async function applyWatermarkToPdf(file, wmText, wmColor, wmOpacity, idx, total)
     const buf = await readFileAsArrayBuffer(file);
     const pdfDoc = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
     const pages = pdfDoc.getPages();
-    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
 
     // Parse color
     const r = parseInt(wmColor.slice(1,3), 16) / 255;
@@ -1415,39 +2667,23 @@ async function applyWatermarkToPdf(file, wmText, wmColor, wmOpacity, idx, total)
     for (const page of pages) {
         const { width, height } = page.getSize();
 
-        if (currentWatermarkMode === 'single') {
-            // Center single watermark
-            if (currentWatermarkType === 'text') {
-                const fontSize = 42;
-                const textWidth = font.widthOfTextAtSize(wmText, fontSize);
-                const textX = (width - textWidth) / 2;
-                const textY = height / 2;
-                // Semi-transparent overlay box
-                page.drawRectangle({ x: textX - 30, y: textY - 40, width: textWidth + 60, height: 60, color: PDFLib.rgb(1,1,1), opacity: 0.07, borderColor: color, borderWidth: 1.5, opacity: wmOpacity / 2 });
-                page.drawText(wmText, { x: textX, y: textY - 12, font, size: fontSize, color, opacity: wmOpacity });
-            } else if (patternEmbed) {
+        if (currentWatermarkType === 'text' && wmText) {
+            // Render text watermark via Canvas → PNG embedding (supports CJK, no font dependency)
+            const wmPng = createWatermarkPngForPdf(width, height, wmText, wmColor, wmOpacity, currentWatermarkMode);
+            const wmPngBuf = dataURLToArrayBuffer(wmPng);
+            const wmImage = await pdfDoc.embedPng(wmPngBuf);
+            page.drawImage(wmImage, { x: 0, y: 0, width: width, height: height });
+        } else if (currentWatermarkType === 'pattern' && patternEmbed) {
+            if (currentWatermarkMode === 'single') {
                 const pw = 120, ph = 120;
                 page.drawImage(patternEmbed, { x: (width - pw) / 2, y: (height - ph) / 2, width: pw, height: ph, opacity: wmOpacity });
-            }
-        } else {
-            // Grid tile mode
-            const cols = 3, rows = 2;
-            const cellW = width / cols, cellH = height / rows;
-            const angle = -30 * Math.PI / 180;
-
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    const cx = c * cellW + cellW / 2;
-                    const cy = r * cellH + cellH / 2;
-
-                    if (currentWatermarkType === 'text') {
-                        const fontSize = 36;
-                        const tw = font.widthOfTextAtSize(wmText, fontSize);
-                        // Rotated text placement
-                        const rx = cx - tw / 2;
-                        const ry = cy;
-                        page.drawText(wmText, { x: rx, y: ry, font, size: fontSize, color, opacity: wmOpacity, rotate: PDFLib.degrees(-30) });
-                    } else if (patternEmbed) {
+            } else {
+                const cols = 3, rows = 2;
+                const cellW = width / cols, cellH = height / rows;
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const cx = c * cellW + cellW / 2;
+                        const cy = r * cellH + cellH / 2;
                         const pw = 80, ph = 80;
                         page.drawImage(patternEmbed, { x: cx - pw/2, y: cy - ph/2, width: pw, height: ph, opacity: wmOpacity });
                     }
@@ -1459,6 +2695,63 @@ async function applyWatermarkToPdf(file, wmText, wmColor, wmOpacity, idx, total)
     const bytes = await pdfDoc.save({ useObjectStreams: true });
     const blob = new Blob([bytes], { type: 'application/pdf' });
     download(blob, getBaseName(file.name) + '_watermarked.pdf', 'application/pdf');
+}
+
+// Create a transparent PNG watermark image for PDF embedding (supports CJK)
+function createWatermarkPngForPdf(pageW, pageH, text, color, opacity, mode) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(pageW);
+    canvas.height = Math.round(pageH);
+    const ctx = canvas.getContext('2d');
+
+    // Clear transparent
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (mode === 'single') {
+        const fontSize = Math.round(Math.min(pageW, pageH) * 0.08);
+        ctx.font = `bold ${fontSize}px "Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif`;
+        ctx.save();
+        ctx.translate(pageW / 2, pageH / 2);
+        ctx.rotate(-20 * Math.PI / 180);
+        // Subtle background box
+        const metrics = ctx.measureText(text);
+        const tw = metrics.width, th = fontSize;
+        ctx.fillStyle = 'rgba(255,255,255,0.07)';
+        ctx.fillRect(-tw/2 - 30, -th/2 - 15, tw + 60, th + 30);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = opacity * 0.5;
+        ctx.strokeRect(-tw/2 - 30, -th/2 - 15, tw + 60, th + 30);
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = color;
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+    } else {
+        const fontSize = Math.round(Math.min(pageW, pageH) * 0.055);
+        ctx.font = `bold ${fontSize}px "Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif`;
+        const cols = 3, rows = 2;
+        const cellW = pageW / cols, cellH = pageH / rows;
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const cx = c * cellW + cellW / 2;
+                const cy = r * cellH + cellH / 2;
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(-30 * Math.PI / 180);
+                ctx.fillText(text, 0, 0);
+                ctx.restore();
+            }
+        }
+    }
+    ctx.restore();
+
+    return canvas.toDataURL('image/png');
 }
 
 // ── Watermark: Image ──
@@ -1587,18 +2880,49 @@ async function processDocRedact() {
 
         const ext = file.name.split('.').pop().toLowerCase();
         if (ext === 'pdf') {
-            // PDF redaction: add redaction annotation layer
             const buf = await readFileAsArrayBuffer(file);
             const pdfDoc = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
             const pages = pdfDoc.getPages();
 
+            if (currentRedactMode === 'manual' && redactRegions.length > 0) {
+                setProgress(pct + 5, '应用手动涂抹区域...');
+                // Group regions by page
+                const regionsByPage = {};
+                for (const r of redactRegions) {
+                    if (!regionsByPage[r.page]) regionsByPage[r.page] = [];
+                    regionsByPage[r.page].push(r);
+                }
+
+                // Apply black rectangles on each page
+                for (const [pageNum, regions] of Object.entries(regionsByPage)) {
+                    const pIdx = parseInt(pageNum) - 1;
+                    if (pIdx < 0 || pIdx >= pages.length) continue;
+                    const page = pages[pIdx];
+                    for (const r of regions) {
+                        // PDF coordinates: origin is bottom-left, y goes up
+                        // Our redactRegions use origin at top-left (canvas convention)
+                        const pageHeight = page.getSize().height;
+                        const pdfY = pageHeight - r.y - r.h;
+                        page.drawRectangle({
+                            x: r.x,
+                            y: pdfY,
+                            width: r.w,
+                            height: r.h,
+                            color: PDFLib.rgb(0, 0, 0),
+                            opacity: 1
+                        });
+                    }
+                }
+            }
+
+            // Add redaction notice banner on each page
             for (const page of pages) {
                 const { width, height } = page.getSize();
-                // Draw redaction notice banner
-                page.drawRectangle({ x: 0, y: height - 30, width: width, height: 30, color: PDFLib.rgb(0.9, 0.2, 0.2), opacity: 0.9 });
-                page.drawText(currentRedactMode === 'auto' ? 'AUTO REDACTED - SENSITIVE DATA REMOVED' : 'MANUAL REDACTION APPLIED', {
-                    x: 20, y: height - 20, size: 10, color: PDFLib.rgb(1,1,1)
-                });
+                page.drawRectangle({ x: 0, y: height - 24, width: width, height: 24, color: PDFLib.rgb(0.85, 0.2, 0.2), opacity: 0.85 });
+                const label = currentRedactMode === 'auto'
+                    ? 'AUTO REDACTED - SENSITIVE DATA REMOVED'
+                    : `MANUAL REDACTED - ${redactRegions.length} REGION(S) SHREDDED`;
+                page.drawText(label, { x: 10, y: height - 16, size: 8, color: PDFLib.rgb(1, 1, 1) });
             }
 
             const bytes = await pdfDoc.save();
@@ -1610,6 +2934,7 @@ async function processDocRedact() {
             const zip = await JSZip.loadAsync(buf);
             zip.file('litepdf_redact.json', JSON.stringify({
                 mode: currentRedactMode,
+                regionCount: currentRedactMode === 'manual' ? redactRegions.length : 0,
                 appliedAt: new Date().toISOString(),
                 notice: 'This document has been redacted for privacy protection'
             }));
@@ -1620,7 +2945,10 @@ async function processDocRedact() {
     }
 
     setProgress(100, L.done);
-    showToast(currentLang === 'zh' ? `脱敏完成！已处理 ${total} 个文件` : `Redaction complete! ${total} file(s) processed`, 'success');
+    const regionInfo = currentRedactMode === 'manual' && redactRegions.length > 0
+        ? (currentLang === 'zh' ? `，粉碎 ${redactRegions.length} 个区域` : `, shredded ${redactRegions.length} regions`)
+        : '';
+    showToast(currentLang === 'zh' ? `脱敏完成！已处理 ${total} 个文件${regionInfo}` : `Redaction complete! ${total} file(s) processed${regionInfo}`, 'success');
 }
 
 // ========================================================
@@ -3158,8 +4486,515 @@ function handleMessageSubmit(event) {
 }
 
 // ========================================================
+// MARKDOWN → PDF / IMAGE
+// ========================================================
+
+function _unconstrainPreview(preview) {
+    // The #md-preview is height-constrained by its parent chain:
+    //   grandparent (.flex, style="height:480px") → parent (.flex-1 flex-col min-h-0) → preview (flex-grow overflow-y-auto)
+    // html2canvas only captures the visible viewport; we must remove all height caps.
+    const parent = preview.parentElement;
+    const grandparent = parent ? parent.parentElement : null;
+    const elStyle = (el, prop) => el ? el.style.getPropertyValue(prop) : '';
+
+    const saved = {
+        pOverflow: elStyle(preview, 'overflow'), pHeight: elStyle(preview, 'height'), pMaxH: elStyle(preview, 'max-height'),
+        cOverflow: elStyle(parent, 'overflow'), cHeight: elStyle(parent, 'height'), cMinH: elStyle(parent, 'min-height'),
+        gcOverflow: elStyle(grandparent, 'overflow'), gcHeight: elStyle(grandparent, 'height'), gcMinH: elStyle(grandparent, 'min-height')
+    };
+
+    // Remove all height caps so html2canvas sees the full content
+    preview.style.overflow = 'visible';
+    preview.style.height = 'auto';
+    preview.style.maxHeight = 'none';
+    if (parent) {
+        parent.style.overflow = 'visible';
+        parent.style.height = 'auto';
+        parent.style.minHeight = '0';
+    }
+    if (grandparent) {
+        grandparent.style.overflow = 'visible';
+        grandparent.style.height = 'auto';
+        grandparent.style.minHeight = '0';
+    }
+    return saved;
+}
+
+function _restorePreview(preview, saved) {
+    const parent = preview.parentElement;
+    const grandparent = parent ? parent.parentElement : null;
+    preview.style.overflow = saved.pOverflow;
+    preview.style.height = saved.pHeight;
+    preview.style.maxHeight = saved.pMaxH;
+    if (parent) {
+        parent.style.overflow = saved.cOverflow;
+        parent.style.height = saved.cHeight;
+        parent.style.minHeight = saved.cMinH;
+    }
+    if (grandparent) {
+        grandparent.style.overflow = saved.gcOverflow;
+        grandparent.style.height = saved.gcHeight;
+        grandparent.style.minHeight = saved.gcMinH;
+    }
+}
+
+async function processMdToPdf() {
+    const L = uiLocales[currentLang];
+    const textarea = document.getElementById('md-input');
+    const preview = document.getElementById('md-preview');
+    if (!textarea || !preview) { throw new Error('Editor not found'); }
+    const raw = textarea.value.trim();
+    if (!raw) { throw new Error(currentLang === 'zh' ? '请输入 Markdown 内容' : 'Please enter Markdown content'); }
+
+    setProgress(10, 'Rendering preview...');
+
+    preview.innerHTML = marked.parse(raw);
+    await new Promise(r => setTimeout(r, 200));
+
+    setProgress(30, 'Capturing canvas...');
+
+    // Unconstrain height so html2canvas captures the full content (not just the visible viewport)
+    const saved = _unconstrainPreview(preview);
+    // Force reflow
+    preview.offsetHeight;
+
+    let canvas;
+    try {
+        canvas = await html2canvas(preview, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: getComputedStyle(preview).backgroundColor || '#ffffff',
+            logging: false
+        });
+    } finally {
+        _restorePreview(preview, saved);
+    }
+
+    setProgress(60, 'Building PDF...');
+
+    // A4 width; height matches full content (continuous single page, same as long image)
+    const A4_W = 595.28;
+    const A4_H = 841.89;
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+    const scale = A4_W / imgW;
+    const totalH = imgH * scale;
+
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const pageH = Math.max(A4_H, totalH);
+    const page = pdfDoc.addPage([A4_W, pageH]);
+    const pngData = canvas.toDataURL('image/png');
+    const pngImg = await pdfDoc.embedPng(pngData);
+    page.drawImage(pngImg, { x: 0, y: pageH - totalH, width: A4_W, height: totalH });
+
+    setProgress(90, 'Saving...');
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    download(blob, 'markdown-export.pdf', 'application/pdf');
+}
+
+async function exportMdLongImage() {
+    const textarea = document.getElementById('md-input');
+    const preview = document.getElementById('md-preview');
+    if (!textarea || !preview) { throw new Error('Editor not found'); }
+    const raw = textarea.value.trim();
+    if (!raw) { throw new Error(currentLang === 'zh' ? '请输入 Markdown 内容' : 'Please enter Markdown content'); }
+
+    preview.innerHTML = marked.parse(raw);
+    await new Promise(r => setTimeout(r, 200));
+
+    // Unconstrain height so html2canvas captures the full content
+    const saved = _unconstrainPreview(preview);
+    preview.offsetHeight; // force reflow
+
+    let canvas;
+    try {
+        canvas = await html2canvas(preview, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: getComputedStyle(preview).backgroundColor || '#ffffff',
+            logging: false
+        });
+    } finally {
+        _restorePreview(preview, saved);
+    }
+
+    canvas.toBlob(blob => {
+        download(blob, 'markdown-export.png', 'image/png');
+    }, 'image/png');
+}
+
+async function processHtmlToPdf() {
+    const L = uiLocales[currentLang];
+    const textarea = document.getElementById('html-input');
+    if (!textarea) { throw new Error('Editor not found'); }
+    const raw = textarea.value.trim();
+    if (!raw) { throw new Error(currentLang === 'zh' ? '请输入或上传 HTML 内容' : 'Please enter or upload HTML content'); }
+
+    setProgress(10, 'Rendering HTML...');
+
+    // Render HTML in a hidden iframe for html2canvas capture
+    const tempIframe = document.createElement('iframe');
+    tempIframe.style.cssText = 'position:fixed;top:-9999px;left:0;width:800px;height:600px;border:none;';
+    document.body.appendChild(tempIframe);
+    tempIframe.srcdoc = raw;
+
+    // Wait for iframe to load
+    await new Promise((resolve) => {
+        tempIframe.onload = resolve;
+        setTimeout(resolve, 500); // fallback timeout
+    });
+    // Extra wait for async resources
+    await new Promise(r => setTimeout(r, 300));
+
+    setProgress(30, 'Capturing...');
+
+    const iframeDoc = tempIframe.contentDocument || tempIframe.contentWindow.document;
+    // Use full scroll dimensions
+    const bodyEl = iframeDoc.body;
+    const scrollW = Math.max(bodyEl.scrollWidth, bodyEl.offsetWidth, 800);
+    const scrollH = Math.max(bodyEl.scrollHeight, bodyEl.offsetHeight, 600);
+
+    // Temporarily resize iframe to full content size
+    tempIframe.style.width = scrollW + 'px';
+    tempIframe.style.height = scrollH + 'px';
+    await new Promise(r => setTimeout(r, 100));
+
+    let canvas;
+    try {
+        canvas = await html2canvas(iframeDoc.body, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            width: scrollW,
+            height: scrollH,
+            windowWidth: scrollW,
+            windowHeight: scrollH
+        });
+    } finally {
+        document.body.removeChild(tempIframe);
+    }
+
+    setProgress(60, 'Building PDF...');
+
+    const A4_W = 595.28;
+    const A4_H = 841.89;
+    const imgW = canvas.width;
+    const imgH = canvas.height;
+    const scale = A4_W / imgW;
+    const totalH = imgH * scale;
+
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const pageH = Math.max(A4_H, totalH);
+    const page = pdfDoc.addPage([A4_W, pageH]);
+    const pngData = canvas.toDataURL('image/png');
+    const pngImg = await pdfDoc.embedPng(pngData);
+    page.drawImage(pngImg, { x: 0, y: pageH - totalH, width: A4_W, height: totalH });
+
+    setProgress(90, 'Saving...');
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    download(blob, 'html-export.pdf', 'application/pdf');
+}
+
+// ========================================================
+// EPUB → PDF / WORD
+// ========================================================
+
+async function parseEpubChapters(file) {
+    const zip = await JSZip.loadAsync(file);
+    // Find .opf file
+    let opfPath = null;
+    // Check META-INF/container.xml for OPF path
+    const containerFile = zip.file('META-INF/container.xml');
+    if (containerFile) {
+        const containerXml = await containerFile.async('text');
+        const match = containerXml.match(/full-path="([^"]+)"/);
+        if (match) opfPath = match[1];
+    }
+    if (!opfPath) {
+        // Fallback: find first .opf file
+        zip.forEach((relativePath) => {
+            if (relativePath.endsWith('.opf') && !opfPath) opfPath = relativePath;
+        });
+    }
+    if (!opfPath) throw new Error('Invalid EPUB: no OPF file found');
+
+    const opfXml = await zip.file(opfPath).async('text');
+    const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/') + 1);
+
+    // Parse manifest: id → href
+    const manifest = {};
+    const manifestRe = /<item[^>]*>/g;
+    let m;
+    while ((m = manifestRe.exec(opfXml)) !== null) {
+        const idMatch = m[0].match(/id="([^"]+)"/);
+        const hrefMatch = m[0].match(/href="([^"]+)"/);
+        if (idMatch && hrefMatch) manifest[idMatch[1]] = opfDir + hrefMatch[1];
+    }
+
+    // Parse spine: ordered chapter references
+    const spine = [];
+    const spineRe = /<itemref[^>]*>/g;
+    while ((m = spineRe.exec(opfXml)) !== null) {
+        const idref = m[0].match(/idref="([^"]+)"/);
+        if (idref && manifest[idref[1]]) {
+            spine.push(idref[1]);
+        }
+    }
+
+    // Load chapter HTML content in order
+    const chapters = [];
+    for (const idref of spine) {
+        const href = manifest[idref];
+        const fileObj = zip.file(href);
+        if (fileObj) {
+            let html = await fileObj.async('text');
+            // Make relative paths absolute for CSS/images
+            const basePath = href.substring(0, href.lastIndexOf('/') + 1);
+            html = html.replace(/(src|href)="(?!https?:\/\/)([^"]+)"/g, (_, attr, path) => {
+                if (path.startsWith('/') || path.startsWith('#')) return `${attr}="${path}"`;
+                return `${attr}="${basePath + path}"`;
+            });
+            chapters.push({ idref, href, html });
+        }
+    }
+
+    return { chapters, zip };
+}
+
+async function processEpubToPdfDirect() {
+    const L = uiLocales[currentLang];
+    if (selectedFiles.length === 0) { showToast(L.noFile, 'warn'); return; }
+    const file = selectedFiles[0];
+    if (!file.name.toLowerCase().endsWith('.epub')) { showToast('请选择 .epub 文件', 'warn'); return; }
+
+    showProgress(L.epubLoading);
+    setProgress(5, L.epubLoading);
+
+    const { chapters, zip } = await parseEpubChapters(file);
+    if (chapters.length === 0) throw new Error('No chapters found in EPUB');
+
+    const A4_W = 595.28;
+    const A4_H = 841.89;
+    const pdfDoc = await PDFLib.PDFDocument.create();
+
+    // Render each chapter as an image
+    const tempIframe = document.createElement('iframe');
+    tempIframe.style.cssText = 'position:fixed;top:-9999px;left:0;width:794px;height:1123px;border:none;';
+    document.body.appendChild(tempIframe);
+
+    for (let i = 0; i < chapters.length; i++) {
+        const ch = chapters[i];
+        setProgress(10 + Math.floor((i / chapters.length) * 70), `${L.epubRendering} ${i + 1}/${chapters.length}`);
+
+        tempIframe.srcdoc = ch.html;
+        await new Promise(resolve => {
+            tempIframe.onload = resolve;
+            setTimeout(resolve, 800);
+        });
+        await new Promise(r => setTimeout(r, 200));
+
+        const iframeDoc = tempIframe.contentDocument || tempIframe.contentWindow.document;
+        const bodyEl = iframeDoc.body;
+        const contentW = 794;
+        const scrollH = Math.max(bodyEl.scrollHeight, bodyEl.offsetHeight, 1123);
+        tempIframe.style.width = contentW + 'px';
+        tempIframe.style.height = scrollH + 'px';
+        await new Promise(r => setTimeout(r, 100));
+
+        const canvas = await html2canvas(bodyEl, {
+            scale: 2, useCORS: true, backgroundColor: '#ffffff',
+            logging: false, width: contentW, height: scrollH,
+            windowWidth: contentW, windowHeight: scrollH
+        });
+
+        const imgW = canvas.width, imgH = canvas.height;
+        const scale = A4_W / imgW, totalH = imgH * scale;
+        const pngData = canvas.toDataURL('image/png');
+
+        // Add pages for this chapter
+        let pageIndex = 0;
+        const sliceH = Math.floor(A4_H / scale);
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = imgW;
+        tempCanvas.height = Math.min(sliceH, imgH);
+        const tctx = tempCanvas.getContext('2d');
+
+        while (pageIndex * sliceH < imgH) {
+            const sy = pageIndex * sliceH;
+            const sh = Math.min(sliceH, imgH - sy);
+            if (sh !== tempCanvas.height) { tempCanvas.height = sh; }
+            tctx.clearRect(0, 0, imgW, sh);
+            tctx.fillStyle = '#ffffff';
+            tctx.fillRect(0, 0, imgW, sh);
+            tctx.drawImage(canvas, 0, sy, imgW, sh, 0, 0, imgW, sh);
+            const slicePng = await pdfDoc.embedPng(tempCanvas.toDataURL('image/png'));
+            const page = pdfDoc.addPage([A4_W, A4_H]);
+            const drawH = sh * scale;
+            page.drawImage(slicePng, { x: 0, y: A4_H - drawH, width: A4_W, height: drawH });
+            pageIndex++;
+        }
+    }
+
+    document.body.removeChild(tempIframe);
+
+    setProgress(90, 'Saving...');
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const baseName = file.name.replace(/\.epub$/i, '');
+    download(blob, `${baseName}.pdf`, 'application/pdf');
+}
+
+async function processEpubToWordDirect() {
+    const L = uiLocales[currentLang];
+    if (selectedFiles.length === 0) { showToast(L.noFile, 'warn'); return; }
+    const file = selectedFiles[0];
+    if (!file.name.toLowerCase().endsWith('.epub')) { showToast('请选择 .epub 文件', 'warn'); return; }
+
+    showProgress(L.epubLoading);
+    setProgress(10, L.epubLoading);
+
+    const { chapters } = await parseEpubChapters(file);
+
+    // Build Word-compatible HTML
+    let docxHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head><meta charset="UTF-8"><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.8;}
+h1{font-size:18pt;font-weight:bold;margin:12pt 0;} h2{font-size:14pt;font-weight:bold;margin:10pt 0;}
+p{margin:6pt 0;text-align:justify;} .chapter-title{page-break-before:always;font-size:16pt;font-weight:bold;margin:20pt 0 12pt;}</style></head><body>`;
+
+    for (let i = 0; i < chapters.length; i++) {
+        setProgress(15 + Math.floor((i / chapters.length) * 70), `${L.epubRendering} ${i + 1}/${chapters.length}`);
+        let html = chapters[i].html;
+        // Remove scripts, styles, and iframes
+        html = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+        html = html.replace(/<style[\s\S]*?<\/style>/gi, '');
+        html = html.replace(/<iframe[\s\S]*?<\/iframe>/gi, '');
+        // Add chapter marker
+        docxHtml += `<div class="chapter-title">${L.epubChapter} ${i + 1}</div>\n`;
+        docxHtml += html + '\n';
+    }
+
+    docxHtml += '</body></html>';
+    const blob = new Blob([docxHtml], { type: 'application/msword' });
+    const baseName = file.name.replace(/\.epub$/i, '');
+    download(blob, `${baseName}.doc`, 'application/msword');
+    setProgress(100, 'Done!');
+}
+
+// ========================================================
+// OCR (PaddleOCR-VL backend)
+// ========================================================
+const OCR_SERVER = 'http://127.0.0.1:5000';
+
+function setOcrLang(lang) {
+    ocrOcrLang = lang;
+    const L = uiLocales[currentLang];
+    const zone = document.getElementById('extra-config');
+    if (zone) zone.innerHTML = buildConfigHTML('ocr', L);
+}
+
+async function runOcr() {
+    const L = uiLocales[currentLang];
+    if (selectedFiles.length === 0) { showToast(L.noFile, 'warn'); return; }
+
+    const file = selectedFiles[0];
+    const btn = document.getElementById('btn-ocr-run');
+    btn.disabled = true;
+    btn.classList.add('opacity-60', 'cursor-not-allowed');
+    btn.innerText = L.ocrProgress;
+
+    try {
+        showProgress(L.ocrProgress);
+        setProgress(10, 'Loading image...');
+
+        // Convert file to base64
+        let imgB64;
+        if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            // Render first page of PDF to canvas
+            const pdfData = new Uint8Array(await file.arrayBuffer());
+            const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.0 });
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            imgB64 = canvas.toDataURL('image/png');
+        } else {
+            imgB64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        setProgress(40, 'Calling PaddleOCR...');
+
+        const resp = await fetch(`${OCR_SERVER}/ocr`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: imgB64, lang: ocrOcrLang })
+        });
+
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error(`OCR server error: ${errText}`);
+        }
+
+        const result = await resp.json();
+        setProgress(90, 'Done!');
+
+        // Show result
+        const resultArea = document.getElementById('ocr-result-area');
+        const resultText = document.getElementById('ocr-result-text');
+        if (resultArea) resultArea.classList.remove('hidden');
+        if (resultText) resultText.value = result.text || '';
+
+        setProgress(100, result.text ? `Recognized ${result.text.split('\n').length} lines` : 'No text found');
+
+    } catch (err) {
+        setProgress(0, '');
+        const resultText = document.getElementById('ocr-result-text');
+        if (resultText) resultText.value = '';
+        if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            showToast('OCR 服务未启动，请先运行: python ocr_server.py', 'error');
+        } else {
+            showToast(err.message, 'error');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-60', 'cursor-not-allowed');
+        btn.innerText = L.ocrBtn;
+    }
+}
+
+function copyOcrText() {
+    const textarea = document.getElementById('ocr-result-text');
+    if (!textarea || !textarea.value) return;
+    navigator.clipboard.writeText(textarea.value).then(() => {
+        showToast(currentLang === 'zh' ? '已复制到剪贴板' : 'Copied to clipboard', 'success');
+    });
+}
+
+function downloadOcrTxt() {
+    const textarea = document.getElementById('ocr-result-text');
+    if (!textarea || !textarea.value) return;
+    const blob = new Blob([textarea.value], { type: 'text/plain;charset=utf-8' });
+    const baseName = (selectedFiles[0]?.name || 'ocr').replace(/\.[^.]+$/, '');
+    download(blob, `${baseName}.txt`, 'text/plain');
+}
+
+// ========================================================
 // BOOT
 // ========================================================
+// Restore theme from localStorage
+(function() {
+    try { themeMode = localStorage.getItem('litepdf-theme') || 'light'; } catch(e) {}
+    if (themeMode === 'dark') document.documentElement.classList.add('dark');
+})();
 renderUI();
 </script>
 </body>

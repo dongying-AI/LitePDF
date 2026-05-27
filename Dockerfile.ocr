@@ -1,0 +1,29 @@
+# LitePDF OCR 服务 — PaddleOCR-VL
+# 基础镜像较大（含 PaddlePaddle），首次构建约 5-10 分钟
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# 安装系统依赖（编译工具 + 图形库）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ make \
+    libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Python 依赖（PaddlePaddle 从官方镜像安装，更快更稳定）
+RUN pip install --no-cache-dir --default-timeout=300 \
+    flask flask-cors pillow numpy && \
+    pip install --no-cache-dir --default-timeout=600 \
+    paddlepaddle -i https://www.paddlepaddle.org.cn/packages/stable/cpu/ && \
+    pip install --no-cache-dir --default-timeout=300 \
+    paddleocr
+
+# 复制 OCR 服务代码
+COPY ocr_server.py ./
+
+# 预热 PaddleOCR 模型（首次启动时下载）
+RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True, lang='ch', use_gpu=False, show_log=False); print('PaddleOCR ready')"
+
+EXPOSE 5000
+
+CMD ["python", "ocr_server.py"]

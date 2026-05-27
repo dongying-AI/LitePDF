@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  litepdf:
+    build: .
+    container_name: litepdf
+    ports:
+      - "8088:80"      # 前端页面访问端口
+      - "3000:3000"    # 留言后端 API 端口
+    volumes:
+      - ./data:/app/data  # 持久化留言数据到本地 data 目录
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+
+  ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile.ocr
+    container_name: litepdf-ocr
+    ports:
+      - "5000:5000"    # PaddleOCR 后端 API 端口
+    restart: unless-stopped
+    profiles:
+      - ocr           # 默认不启动，使用 --profile ocr 启用
+    environment:
+      - FLASK_ENV=production
