@@ -2382,7 +2382,7 @@ function slideElementsToText(elements) {
 }
 
 async function processPptToPdf() {
-    setProgress(15, '解析演示文稿...');
+    setProgress(10, '解析演示文稿...');
     const file = selectedFiles[0];
     const L = uiLocales[currentLang];
 
@@ -2404,6 +2404,13 @@ async function processPptToPdf() {
     const buf = await readFileAsArrayBuffer(file);
     const zip = await JSZip.loadAsync(buf);
 
+    // Read slide dimensions from presentation.xml
+    let slideSize = PPTX_SLIDE_DEFAULTS;
+    if (zip.files['ppt/presentation.xml']) {
+        const presXml = await zip.files['ppt/presentation.xml'].async('text');
+        slideSize = parseSlideSize(presXml);
+    }
+
     // Find all slides
     const slideFiles = Object.keys(zip.files).filter(f => /^ppt\/slides\/slide\d+\.xml$/.test(f)).sort((a, b) => {
         const na = parseInt(a.match(/slide(\d+)/)?.[1] || '0', 10);
@@ -2416,29 +2423,146 @@ async function processPptToPdf() {
     }
 
     const totalSlides = slideFiles.length;
-    const pdfDoc = await PDFLib.PDFDocument.create();
-    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
 
-    for (let i = 0; i < totalSlides; i++) {
-        setProgress(20 + (i / totalSlides * 70), `渲染第 ${i + 1}/${totalSlides} 张幻灯片...`);
-        const slideXml = await zip.files[slideFiles[i]].async('text');
-        const texts = slideElementsToText(parseSlideElements(slideXml));
-        const page = pdfDoc.addPage([595, 842]);
-        const slideNum = slideFiles[i].match(/slide(\d+)/)[1];
-
-        page.drawText('Slide ' + slideNum, { x: 50, y: 800, font, size: 16, color: PDFLib.rgb(0.1, 0.1, 0.6) });
-        let y = 760;
-        for (const line of texts) {
-            if (y < 50) break;
-            const safe = line.replace(/[^\x00-\x7F\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]/g, '').substring(0, 100);
-            if (safe.trim()) {
-                page.drawText(safe, { x: 50, y, font, size: 10, color: PDFLib.rgb(0.2, 0.2, 0.2) });
-                y -= 16;
-            }
-        }
+    // Pre-load all media images (8 concurrent)
+    setProgress(15, '加载媒体资源...');
+    const mediaImages = {};
+    const mediaFiles = Object.keys(zip.files).filter(f => /^ppt\/media\//.test(f));
+    const MEDIA_BATCH = 8;
+    for (let bi = 0; bi < mediaFiles.length; bi += MEDIA_BATCH) {
+        const batch = mediaFiles.slice(bi, bi + MEDIA_BATCH);
+        await Promise.all(batch.map(async (mf) => {
+            try {
+                const data = await zip.files[mf].async('uint8array');
+                mediaImages[mf] = URL.createObjectURL(new Blob([data]));
+            } catch (e) { /* skip broken */ }
+        }));
     }
 
-    setProgress(95, '生成 PDF...');
+    // Pre-parse all slides
+    setProgress(20, '解析幻灯片结构...');
+    const slidePreData = await Promise.all(slideFiles.map(async (sf) => {
+        const slideNum = sf.match(/slide(\d+)/)?.[1] ?? '0';
+        const slideXml = await zip.files[sf].async('text');
+        const elements = parseSlideElements(slideXml);
+        const relsPath = sf.replace(/\.xml$/, '.xml.rels').replace('slides/', 'slides/_rels/');
+        let imgMap = {};
+        if (zip.files[relsPath]) {
+            imgMap = parsePptxRelsV2(await zip.files[relsPath].async('text'), 'ppt/slides');
+        }
+        return { sf, slideNum, slideXml, elements, imgMap };
+    }));
+
+    // Create PDF document with slide aspect ratio
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    
+    // Calculate PDF page size (fit to standard width 595pt, maintain aspect ratio)
+    const PDF_WIDTH = 595;
+    const PDF_HEIGHT = Math.round(PDF_WIDTH * slideSize.cy / slideSize.cx);
+    
+    // Canvas dimensions for rendering (higher resolution for better quality)
+    const canvasW = 1280;
+    const canvasH = Math.round(canvasW * slideSize.cy / slideSize.cx);
+    const scaleX = canvasW / slideSize.cx;
+    const scaleY = canvasH / slideSize.cy;
+
+    // Render slides and add to PDF (4 concurrent)
+    const SLIDE_CONCURRENCY = 4;
+    let slideCompleted = 0;
+
+    for (let bi = 0; bi < totalSlides; bi += SLIDE_CONCURRENCY) {
+        const bEnd = Math.min(bi + SLIDE_CONCURRENCY, totalSlides);
+        const batchIndices = [];
+        for (let j = bi; j < bEnd; j++) batchIndices.push(j);
+
+        await Promise.all(batchIndices.map(async (i) => {
+            const { slideXml, elements, imgMap } = slidePreData[i];
+
+            // Create canvas for this slide
+            const c = document.createElement('canvas');
+            c.width = canvasW; c.height = canvasH;
+            const cx = c.getContext('2d');
+
+            // Render background
+            let bgUrl = null;
+            const bgBlock = slideXml.match(/<p:bg>([\s\S]*?)<\/p:bg>/);
+            if (bgBlock) {
+                const bgXml = bgBlock[1];
+                const bgColor = resolveColor(bgXml);
+                if (bgColor) { cx.fillStyle = bgColor; cx.fillRect(0, 0, canvasW, canvasH); }
+                const bgBlip = bgXml.match(/r:embed="([^"]+)"/);
+                if (bgBlip) { const bp = imgMap[bgBlip[1]]; if (bp && mediaImages[bp]) bgUrl = mediaImages[bp]; }
+            }
+            if (!bgUrl) {
+                const layoutRId = imgMap['rId1'];
+                if (layoutRId) {
+                    const layoutFile = layoutRId.replace('ppt/slides/', '');
+                    const lp = layoutFile.startsWith('..') ? 'ppt/' + layoutFile.substring(3) : layoutFile;
+                    if (zip.files[lp]) {
+                        const lx = await zip.files[lp].async('text');
+                        const lbg = lx.match(/<p:bg>([\s\S]*?)<\/p:bg>/);
+                        if (lbg) {
+                            const lColor = resolveColor(lbg[1]);
+                            if (lColor) { cx.fillStyle = lColor; cx.fillRect(0, 0, canvasW, canvasH); }
+                            const lb = lbg[1].match(/r:embed="([^"]+)"/);
+                            if (lb) {
+                                const ld = lp.replace(/\/[^/]+$/, '');
+                                const lrp = lp.replace(/\/([^/]+)$/, '/_rels/$1.rels');
+                                if (zip.files[lrp]) {
+                                    const lim = parsePptxRelsV2(await zip.files[lrp].async('text'), ld);
+                                    const lbp = lim[lb[1]];
+                                    if (lbp && mediaImages[lbp]) bgUrl = mediaImages[lbp];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (bgUrl) {
+                try { const bi = await loadImage(bgUrl); cx.drawImage(bi, 0, 0, canvasW, canvasH); }
+                catch (e) { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvasW, canvasH); }
+            } else if (!cx.fillStyle || cx.fillStyle === '#000000') {
+                cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvasW, canvasH);
+            }
+
+            // Render elements in z-order
+            for (const el of elements) {
+                if (el.type === 'shape') {
+                    let shapeImg = null;
+                    if (el.imgFillId && imgMap[el.imgFillId] && mediaImages[imgMap[el.imgFillId]]) {
+                        try { shapeImg = await loadImage(mediaImages[imgMap[el.imgFillId]]); }
+                        catch (e) { /* skip broken */ }
+                    }
+                    renderShape(cx, el, scaleX, scaleY, shapeImg);
+                } else if (el.type === 'picture') {
+                    const ip = imgMap[el.embedId];
+                    if (ip && mediaImages[ip]) {
+                        try { const img = await loadImage(mediaImages[ip]); renderPictureOnCanvas(cx, el, img, scaleX, scaleY); }
+                        catch (e) { /* skip */ }
+                    }
+                }
+            }
+
+            // Convert canvas to PNG and embed in PDF
+            const pngData = c.toDataURL('image/png').split(',')[1];
+            const pngImage = await pdfDoc.embedPng(pngData);
+            const page = pdfDoc.addPage([PDF_WIDTH, PDF_HEIGHT]);
+            page.drawImage(pngImage, {
+                x: 0,
+                y: 0,
+                width: PDF_WIDTH,
+                height: PDF_HEIGHT
+            });
+        }));
+
+        slideCompleted += bEnd - bi;
+        setProgress(25 + (slideCompleted / totalSlides * 70), `渲染第 ${slideCompleted}/${totalSlides} 张幻灯片...`);
+    }
+
+    // Cleanup
+    for (const url of Object.values(mediaImages)) URL.revokeObjectURL(url);
+
+    setProgress(98, '生成 PDF...');
     const bytes = await pdfDoc.save();
     download(new Blob([bytes], { type: 'application/pdf' }), getBaseName(file.name) + '_converted.pdf', 'application/pdf');
 }
