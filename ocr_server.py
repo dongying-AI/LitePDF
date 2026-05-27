@@ -41,10 +41,8 @@ def get_ocr(lang='ch'):
             }
             mapped_lang = lang_map.get(lang, 'ch')
             _ocr = PaddleOCR(
-                use_angle_cls=True,
                 lang=mapped_lang,
-                use_gpu=False,
-                show_log=False
+                use_gpu=False
             )
             print(f"[OCR] PaddleOCR initialized, lang={mapped_lang}")
         except ImportError:
