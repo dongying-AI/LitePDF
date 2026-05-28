@@ -8,7 +8,8 @@ services:
       - "8088:80"      # 前端页面访问端口
       - "3000:3000"    # 留言后端 API 端口
     volumes:
-      - ./data:/app/data  # 持久化留言数据到本地 data 目录
+      - ./data:/app/data           # 持久化留言数据
+      - ./index.html:/usr/share/nginx/html/index.html  # 开发模式：前端文件热更新，无需重建
     restart: unless-stopped
     environment:
       - NODE_ENV=production
