@@ -68,9 +68,25 @@ def do_ocr():
     except Exception as e:
         return jsonify({'error': f'Image decode failed: {str(e)}'}), 400
 
-    # Run OCR
+    # Run OCR (with size limit to avoid crashes)
+    h, w = img_np.shape[:2]
+    print(f"[OCR] Received image: {w}x{h}, lang={lang}, size={len(img_bytes)} bytes")
+    if w < 4 or h < 4:
+        return jsonify({'error': 'Image too small'}), 400
+    if max(w, h) > 4096:
+        # Downscale large images
+        scale = 4096 / max(w, h)
+        new_w, new_h = int(w * scale), int(h * scale)
+        img = img.resize((new_w, new_h), Image.LANCZOS)
+        img_np = np.array(img)
+        print(f"[OCR] Downscaled to {new_w}x{new_h}")
+
     ocr = get_ocr(lang)
-    result = ocr.ocr(img_np)
+    try:
+        result = ocr.ocr(img_np)
+    except Exception as e:
+        print(f"[OCR] PaddleOCR error: {type(e).__name__}: {e}")
+        return jsonify({'error': f'OCR engine error: {str(e)}'}), 500
 
     # Extract text lines
     texts = []
