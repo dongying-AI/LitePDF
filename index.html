@@ -3108,16 +3108,39 @@ async function processWordToPdf() {
 
 async function processExcelToPdf() {
     await loadXlsx();
-    setProgress(30, '解析电子表格...');
+    const L = uiLocales[currentLang];
     const file = selectedFiles[0];
+    if (!file) throw new Error(L.noFile || 'No file selected');
+    if (!window.XLSX) throw new Error('XLSX library not loaded');
+
+    setProgress(30, '解析电子表格...');
     const buf = await readFileAsArrayBuffer(file);
-    const workbook = XLSX.read(buf, { type: 'array' });
+    if (!buf || buf.byteLength === 0) throw new Error('Empty file');
+
+    let workbook;
+    try {
+        workbook = XLSX.read(buf, { type: 'array', cellFormula: false, cellStyles: false });
+    } catch (e) {
+        console.error('XLSX read error:', e);
+        throw new Error(currentLang === 'zh'
+            ? 'Excel 文件解析失败，可能是加密/受保护的文件，或格式不兼容。请尝试另存为标准 .xlsx 后再上传。'
+            : 'Excel parsing failed. The file may be encrypted/protected or in an incompatible format. Please try saving as standard .xlsx and re-upload.');
+    }
+    if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+        throw new Error(currentLang === 'zh' ? 'Excel 文件不包含任何工作表' : 'Excel file has no sheets');
+    }
 
     setProgress(50, '生成 HTML 表格...');
     let html = '<style>body{font-family:sans-serif;font-size:11px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:4px 6px}th{background:#f0f4ff;font-weight:600}</style>';
     workbook.SheetNames.forEach(name => {
-        html += `<h3 style="margin:16px 0 8px;font-family:sans-serif">${name}</h3>`;
-        html += XLSX.utils.sheet_to_html(workbook.Sheets[name], { editable: false });
+        const sheet = workbook.Sheets[name];
+        if (!sheet) return;
+        try {
+            html += `<h3 style="margin:16px 0 8px;font-family:sans-serif">${name}</h3>`;
+            html += XLSX.utils.sheet_to_html(sheet, { editable: false });
+        } catch (e) {
+            console.warn('Skip sheet', name, e);
+        }
     });
 
     setProgress(75, '渲染为 PDF...');
