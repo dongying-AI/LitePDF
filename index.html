@@ -4941,8 +4941,9 @@ async function runOcr() {
         let imgB64;
         if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
             // Render first page of PDF to canvas
+            await loadPdfJs();
             const pdfData = new Uint8Array(await file.arrayBuffer());
-            const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+            const pdf = await window.pdfjsLib.getDocument({ data: pdfData }).promise;
             const page = await pdf.getPage(1);
             const viewport = page.getViewport({ scale: 2.0 });
             const canvas = document.createElement('canvas');
