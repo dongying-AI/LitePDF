@@ -9,7 +9,7 @@ const path = require('path');
 const url = require('url');
 
 const PORT = 3000;
-const MESSAGES_FILE = path.join(__dirname, 'messages.json');
+const MESSAGES_FILE = path.join(__dirname, 'data', 'messages.json');
 
 // 确保留言文件存在
 function ensureMessagesFile() {
