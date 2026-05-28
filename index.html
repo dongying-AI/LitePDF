@@ -3103,6 +3103,7 @@ async function processWordToPdf() {
     setProgress(75, '渲染为 PDF...');
 
     await renderHtmlToPdf(html, getBaseName(file.name) + '_converted.pdf');
+    hideProgress();
 }
 
 async function processExcelToPdf() {
@@ -3121,6 +3122,7 @@ async function processExcelToPdf() {
 
     setProgress(75, '渲染为 PDF...');
     await renderHtmlToPdf(html, getBaseName(file.name) + '_converted.pdf');
+    hideProgress();
 }
 
 // ========================================================
@@ -4208,14 +4210,14 @@ function renderHtmlToPdf(htmlContent, filename) {
 
         // Wait for content to render, then trigger print
         setTimeout(() => {
-            w.print();
-            // After print dialog closes (or times out), resolve
+            // Register before w.print() so it catches the dialog close event
             w.addEventListener('afterprint', () => {
                 w.close();
                 resolve();
             }, { once: true });
             // Fallback: close after 60s regardless
             setTimeout(() => { try { w.close(); } catch(e) {} resolve(); }, 60000);
+            w.print();
         }, 800);
     });
 }
