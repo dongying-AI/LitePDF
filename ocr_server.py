@@ -68,33 +68,39 @@ def do_ocr():
     except Exception as e:
         return jsonify({'error': f'Image decode failed: {str(e)}'}), 400
 
-    # Run OCR (with size limit to avoid crashes)
+    # Run OCR
     h, w = img_np.shape[:2]
     print(f"[OCR] Received image: {w}x{h}, lang={lang}, size={len(img_bytes)} bytes")
-    if w < 4 or h < 4:
-        return jsonify({'error': 'Image too small'}), 400
-    if max(w, h) > 4096:
-        # Downscale large images
-        scale = 4096 / max(w, h)
-        new_w, new_h = int(w * scale), int(h * scale)
-        img = img.resize((new_w, new_h), Image.LANCZOS)
-        img_np = np.array(img)
-        print(f"[OCR] Downscaled to {new_w}x{new_h}")
 
     ocr = get_ocr(lang)
     try:
-        result = ocr.ocr(img_np)
+        result = ocr.predict(img_np)
     except Exception as e:
         print(f"[OCR] PaddleOCR error: {type(e).__name__}: {e}")
         return jsonify({'error': f'OCR engine error: {str(e)}'}), 500
 
-    # Extract text lines
+    # Extract text lines (compatible with both ocr() and predict() output)
     texts = []
-    if result and result[0]:
-        for line in result[0]:
-            text = line[1][0]
-            confidence = line[1][1]
-            texts.append(text)
+    if result:
+        for item in result:
+            if isinstance(item, dict):
+                # predict() returns dict with rec_text/rec_score
+                for res in item.get('rec_texts', item.get('rec_text', [])):
+                    if isinstance(res, str):
+                        texts.append(res)
+                    elif isinstance(res, list) and len(res) > 0:
+                        texts.append(res[0] if isinstance(res[0], str) else str(res[1]))
+                # Also try dt_polys + rec_texts format
+                rec_texts = item.get('rec_texts', item.get('rec_text', ''))
+                if isinstance(rec_texts, list):
+                    texts.extend([t for t in rec_texts if t])
+                elif isinstance(rec_texts, str) and rec_texts:
+                    texts.append(rec_texts)
+            elif isinstance(item, list):
+                # ocr() returns [[[box], (text, confidence)], ...]
+                for line in item:
+                    if isinstance(line, (list, tuple)) and len(line) >= 2:
+                        texts.append(str(line[1][0]) if isinstance(line[1], (list, tuple)) else str(line[1]))
 
     return jsonify({
         'text': '\n'.join(texts),
