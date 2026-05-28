@@ -16,7 +16,11 @@ API：
 
 import base64
 import io
+import os
 import sys
+
+# 禁用 OneDNN，规避 PIR 格式兼容问题
+os.environ['FLAGS_use_mkldnn'] = '0'
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS

@@ -13,18 +13,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Python 依赖（PaddleOCR 2.8 + PaddlePaddle 2.6 稳定组合）
+# 安装 Python 依赖
 RUN pip install --no-cache-dir --default-timeout=300 \
     flask flask-cors pillow numpy && \
-    pip install --no-cache-dir --default-timeout=300 \
-    paddleocr==2.8.1 && \
     pip install --no-cache-dir --default-timeout=600 \
-    paddlepaddle==2.6.2 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+    paddlepaddle -i https://www.paddlepaddle.org.cn/packages/stable/cpu/ && \
+    pip install --no-cache-dir --default-timeout=300 \
+    paddleocr
 
 # 复制 OCR 服务代码
 COPY ocr_server.py ./
 
-# 预热 PaddleOCR 模型（首次启动时下载）
+# 预热 PaddleOCR 模型（禁用 OneDNN 避免 PIR 问题）
+ENV FLAGS_use_mkldnn=0
 RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(lang='ch'); print('PaddleOCR ready')"
 
 EXPOSE 5000
