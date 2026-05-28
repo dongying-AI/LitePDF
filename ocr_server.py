@@ -19,8 +19,10 @@ import io
 import os
 import sys
 
-# 禁用 OneDNN，规避 PIR 格式兼容问题
+# 禁用 OneDNN + PIR，规避推理引擎兼容问题
 os.environ['FLAGS_use_mkldnn'] = '0'
+os.environ['FLAGS_pir_exec_mode'] = '0'
+os.environ['PADDLE_DISABLE_PIR'] = '1'
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
