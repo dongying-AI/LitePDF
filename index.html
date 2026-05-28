@@ -4886,7 +4886,9 @@ p{margin:6pt 0;text-align:justify;} .chapter-title{page-break-before:always;font
 // ========================================================
 // OCR (PaddleOCR-VL backend)
 // ========================================================
-const OCR_SERVER = 'http://127.0.0.1:5000';
+const OCR_SERVER = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://127.0.0.1:5000'
+    : '';  // 生产环境通过 nginx 代理
 
 function setOcrLang(lang) {
     ocrOcrLang = lang;
@@ -4933,7 +4935,7 @@ async function runOcr() {
 
         setProgress(40, 'Calling PaddleOCR...');
 
-        const resp = await fetch(`${OCR_SERVER}/ocr`, {
+        const resp = await fetch(`${OCR_SERVER}/api/ocr`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: imgB64, lang: ocrOcrLang })
