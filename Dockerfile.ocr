@@ -25,9 +25,10 @@ RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && 
 # 复制 OCR 服务代码
 COPY ocr_server.py ./
 
-# 预热 PaddleOCR 模型（禁用 OneDNN 避免 PIR 问题）
+# 预热 PaddleOCR 模型（PP-OCRv4 + 禁用 OneDNN）
 ENV FLAGS_use_mkldnn=0
-RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(lang='ch'); print('PaddleOCR ready')"
+RUN rm -rf /root/.paddlex && \
+    python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(lang='ch', ocr_version='PP-OCRv4'); print('PaddleOCR ready')"
 
 EXPOSE 5000
 
