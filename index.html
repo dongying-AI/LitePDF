@@ -4937,52 +4937,98 @@ async function runOcr() {
         showProgress(L.ocrProgress);
         setProgress(10, 'Loading image...');
 
-        // Convert file to base64
-        let imgB64;
+        let extractedText = '';
+
+        // PDF: detect text-based vs scanned, choose best extraction path
         if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-            // Render first page of PDF to canvas
             await loadPdfJs();
+            setProgress(15, 'Analyzing PDF...');
             const pdfData = new Uint8Array(await file.arrayBuffer());
             const pdf = await window.pdfjsLib.getDocument({ data: pdfData }).promise;
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 2.0 });
-            const canvas = document.createElement('canvas');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            const ctx = canvas.getContext('2d');
-            await page.render({ canvasContext: ctx, viewport }).promise;
-            imgB64 = canvas.toDataURL('image/png');
+
+            // Try text layer first
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(it => it.str).join('');
+
+            // If enough text exists, treat as text-based PDF
+            if (pageText.trim().length > 30) {
+                setProgress(50, 'Extracting text from PDF...');
+                // Reconstruct line structure from text positions
+                const items = textContent.items.filter(it => it.str.trim());
+                items.sort((a, b) => {
+                    const dy = Math.abs(a.transform[5] - b.transform[5]);
+                    if (dy < 3) return a.transform[4] - b.transform[4]; // same line: left to right
+                    return b.transform[5] - a.transform[5]; // top to bottom
+                });
+                const lines = [];
+                let currentLine = [];
+                let lastY = null;
+                for (const it of items) {
+                    const y = it.transform[5];
+                    if (lastY !== null && Math.abs(y - lastY) > 3) {
+                        lines.push(currentLine.join(''));
+                        currentLine = [];
+                    }
+                    currentLine.push(it.str);
+                    lastY = y;
+                }
+                if (currentLine.length) lines.push(currentLine.join(''));
+                extractedText = lines.join('\n');
+                setProgress(90, 'Done!');
+            } else {
+                // Scanned PDF: render to image and OCR
+                setProgress(20, 'Rendering PDF page...');
+                const viewport = page.getViewport({ scale: 2.0 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const ctx = canvas.getContext('2d');
+                await page.render({ canvasContext: ctx, viewport }).promise;
+                const imgB64 = canvas.toDataURL('image/png');
+                setProgress(40, 'Calling OCR...');
+                const resp = await fetch(`${OCR_SERVER}/api/ocr`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imgB64, lang: ocrOcrLang, format: ocrFormat })
+                });
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    throw new Error(`OCR server error: ${errText}`);
+                }
+                const result = await resp.json();
+                extractedText = result.text;
+                setProgress(90, 'Done!');
+            }
         } else {
-            imgB64 = await new Promise((resolve) => {
+            // Image file: direct OCR
+            const imgB64 = await new Promise((resolve) => {
                 const reader = new FileReader();
                 reader.onload = (e) => resolve(e.target.result);
                 reader.readAsDataURL(file);
             });
+            setProgress(40, 'Calling OCR...');
+            const resp = await fetch(`${OCR_SERVER}/api/ocr`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imgB64, lang: ocrOcrLang, format: ocrFormat })
+            });
+            if (!resp.ok) {
+                const errText = await resp.text();
+                throw new Error(`OCR server error: ${errText}`);
+            }
+            const result = await resp.json();
+            extractedText = result.text;
+            setProgress(90, 'Done!');
         }
-
-        setProgress(40, 'Calling OCR...');
-
-        const resp = await fetch(`${OCR_SERVER}/api/ocr`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imgB64, lang: ocrOcrLang, format: ocrFormat })
-        });
-
-        if (!resp.ok) {
-            const errText = await resp.text();
-            throw new Error(`OCR server error: ${errText}`);
-        }
-
-        const result = await resp.json();
-        setProgress(90, 'Done!');
 
         // Show result
         const resultArea = document.getElementById('ocr-result-area');
-        const resultText = document.getElementById('ocr-result-text');
+        const resultTextEl = document.getElementById('ocr-result-text');
         if (resultArea) resultArea.classList.remove('hidden');
-        if (resultText) resultText.value = result.text || '';
+        if (resultTextEl) resultTextEl.value = extractedText || '';
 
-        setProgress(100, result.text ? `Recognized ${result.text.split('\n').length} lines` : 'No text found');
+        setProgress(100, extractedText ? `Recognized ${extractedText.split('\n').length} lines` : 'No text found');
 
     } catch (err) {
         setProgress(0, '');
