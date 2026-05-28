@@ -70,7 +70,7 @@ def do_ocr():
 
     # Run OCR
     ocr = get_ocr(lang)
-    result = ocr.ocr(img_np, cls=True)
+    result = ocr.ocr(img_np)
 
     # Extract text lines
     texts = []
