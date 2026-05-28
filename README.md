@@ -44,14 +44,15 @@
 
 ## 技术栈
 
-| 类别 | 技术 |
-|------|------|
-| 前端框架 | 原生 HTML + JavaScript + Tailwind CSS |
-| PDF 处理 | PDF-Lib, PDF.js |
+
+| 类别     | 技术                                          |
+| ---------- | ----------------------------------------------- |
+| 前端框架 | 原生 HTML + JavaScript + Tailwind CSS         |
+| PDF 处理 | PDF-Lib, PDF.js                               |
 | 文档处理 | JSZip, SheetJS (XLSX), marked.js, html2canvas |
-| 加密 | Web Crypto API (AES-256-GCM + PBKDF2) |
-| 后端 | Node.js (留言), PaddleOCR Python (OCR) |
-| 部署 | Docker + Docker Compose |
+| 加密     | Web Crypto API (AES-256-GCM + PBKDF2)         |
+| 后端     | Node.js (留言), PaddleOCR Python (OCR)        |
+| 部署     | Docker + Docker Compose                       |
 
 ## 快速开始
 
@@ -86,11 +87,12 @@ docker compose --profile ocr up -d
 
 服务端口：
 
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| 前端 | 8088 | Nginx 静态页面 |
-| 留言 API | 3000 | Node.js 后端 |
-| OCR API | 5000 | PaddleOCR 后端（可选） |
+
+| 服务     | 端口 | 说明                   |
+| ---------- | ------ | ------------------------ |
+| 前端     | 8088 | Nginx 静态页面         |
+| 留言 API | 3000 | Node.js 后端           |
+| OCR API  | 5000 | PaddleOCR 后端（可选） |
 
 ## 隐私说明
 

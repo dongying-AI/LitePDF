@@ -18,17 +18,8 @@ COPY index.html /usr/share/nginx/html/
 # 创建数据目录
 RUN mkdir -p /app/data
 
-# Nginx 配置
-RUN mkdir -p /etc/nginx/conf.d && \
-    echo 'server { \
-    listen 80; \
-    server_name localhost; \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
+# Nginx 配置（替换默认 nginx.conf，避免 include 冲突）
+RUN printf 'worker_processes auto;\npid /run/nginx.pid;\nevents { worker_connections 1024; }\nhttp {\n    include /etc/nginx/mime.types;\n    default_type application/octet-stream;\n    sendfile on;\n    keepalive_timeout 65;\n    server {\n        listen 80;\n        server_name localhost;\n        root /usr/share/nginx/html;\n        index index.html;\n        location / {\n            try_files $uri $uri/ /index.html;\n        }\n    }\n}\n' > /etc/nginx/nginx.conf
 
 # 启动脚本
 RUN echo '#!/bin/sh' > /app/start.sh && \
