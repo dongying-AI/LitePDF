@@ -40,7 +40,7 @@ def get_ocr(lang='ch'):
                 'ch_en': 'ch'
             }
             mapped_lang = lang_map.get(lang, 'ch')
-            _ocr = PaddleOCR(lang=mapped_lang, ocr_version='PP-OCRv4')
+            _ocr = PaddleOCR(lang=mapped_lang)
             print(f"[OCR] PaddleOCR initialized, lang={mapped_lang}")
         except ImportError:
             print("[OCR] ERROR: paddleocr not installed. Run: pip install paddlepaddle paddleocr")
@@ -74,33 +74,17 @@ def do_ocr():
 
     ocr = get_ocr(lang)
     try:
-        result = ocr.predict(img_np)
+        result = ocr.ocr(img_np)
     except Exception as e:
         print(f"[OCR] PaddleOCR error: {type(e).__name__}: {e}")
         return jsonify({'error': f'OCR engine error: {str(e)}'}), 500
 
-    # Extract text lines (compatible with both ocr() and predict() output)
+    # Extract text lines
     texts = []
-    if result:
-        for item in result:
-            if isinstance(item, dict):
-                # predict() returns dict with rec_text/rec_score
-                for res in item.get('rec_texts', item.get('rec_text', [])):
-                    if isinstance(res, str):
-                        texts.append(res)
-                    elif isinstance(res, list) and len(res) > 0:
-                        texts.append(res[0] if isinstance(res[0], str) else str(res[1]))
-                # Also try dt_polys + rec_texts format
-                rec_texts = item.get('rec_texts', item.get('rec_text', ''))
-                if isinstance(rec_texts, list):
-                    texts.extend([t for t in rec_texts if t])
-                elif isinstance(rec_texts, str) and rec_texts:
-                    texts.append(rec_texts)
-            elif isinstance(item, list):
-                # ocr() returns [[[box], (text, confidence)], ...]
-                for line in item:
-                    if isinstance(line, (list, tuple)) and len(line) >= 2:
-                        texts.append(str(line[1][0]) if isinstance(line[1], (list, tuple)) else str(line[1]))
+    if result and result[0]:
+        for line in result[0]:
+            text = line[1][0]
+            texts.append(text)
 
     return jsonify({
         'text': '\n'.join(texts),
