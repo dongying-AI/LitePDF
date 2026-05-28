@@ -2631,7 +2631,7 @@ function emuToPx(emu, scale) { return Math.round(emu * scale); }
 
 // ── Shape parser ──
 function parseShapeElement(spXml) {
-    const s = { type: 'shape', name: '', x: 0, y: 0, w: 100, h: 50, fill: null, stroke: null, texts: [], geom: 'rect', rot: 0, flipH: false, flipV: false, anchor: 't', imgFillId: null };
+    const s = { type: 'shape', name: '', x: 0, y: 0, w: 100, h: 50, fill: null, stroke: null, texts: [], geom: 'rect', rot: 0, flipH: false, flipV: false, anchor: 't', imgFillId: null, lIns: null, tIns: null, rIns: null, bIns: null };
     const nm = spXml.match(/<p:cNvPr[^>]*name="([^"]*)"/); if (nm) s.name = nm[1];
     const off = spXml.match(/<a:off[^>]*x="(\d+)"[^>]*y="(\d+)"/); if (off) { s.x = parseInt(off[1]); s.y = parseInt(off[2]); }
     const ext = spXml.match(/<a:ext[^>]*cx="(\d+)"[^>]*cy="(\d+)"/); if (ext) { s.w = parseInt(ext[1]); s.h = parseInt(ext[2]); }
@@ -2681,9 +2681,16 @@ function parseShapeElement(spXml) {
     const tb = spXml.match(/<p:txBody>([\s\S]*?)<\/p:txBody>/);
     if (tb) {
         s.texts = parseParagraphs(tb[1]);
-        // Text vertical anchor
-        const bp = tb[1].match(/<a:bodyPr[^>]*anchor="([^"]+)"/);
-        if (bp) s.anchor = bp[1];  // ctr, t, b
+        const bp = tb[1].match(/<a:bodyPr([^>]*)>/);
+        if (bp) {
+            const bodyPr = bp[1];
+            const am = bodyPr.match(/anchor="([^"]+)"/);
+            if (am) s.anchor = am[1];  // ctr, t, b
+            const li = bodyPr.match(/lIns="(\d+)"/); if (li) s.lIns = parseInt(li[1]);
+            const ti = bodyPr.match(/tIns="(\d+)"/); if (ti) s.tIns = parseInt(ti[1]);
+            const ri = bodyPr.match(/rIns="(\d+)"/); if (ri) s.rIns = parseInt(ri[1]);
+            const bi = bodyPr.match(/bIns="(\d+)"/); if (bi) s.bIns = parseInt(bi[1]);
+        }
     }
     return s;
 }
@@ -2972,12 +2979,12 @@ function renderShape(ctx, shape, sx, sy, fillImg) {
         geomPath(); ctx.stroke();
     }
 
-    if (needsTransform) ctx.restore();
-
-    // Text
+    // Text (render inside transform so it rotates/flips with the shape)
     if (shape.texts.length > 0 && w > 20 && h > 14) {
-        renderShapeText(ctx, shape, x, y, w, h);
+        renderShapeText(ctx, shape, x, y, w, h, sx, sy);
     }
+
+    if (needsTransform) ctx.restore();
 }
 
 // ── Word wrap helper: split text into lines that fit within maxWidth ──
@@ -3045,8 +3052,12 @@ function wrapText(ctx, text, maxWidth) {
 }
 
 // ── Text renderer with vertical centering + word wrap ──
-function renderShapeText(ctx, shape, ox, oy, ow, oh) {
-    const pad = 8, maxW = ow - pad * 2;
+function renderShapeText(ctx, shape, ox, oy, ow, oh, sx, sy) {
+    const lPad = shape.lIns ? emuToPx(shape.lIns, sx) : 8;
+    const rPad = shape.rIns ? emuToPx(shape.rIns, sx) : 8;
+    const tPad = shape.tIns ? emuToPx(shape.tIns, sy) : 8;
+    const bPad = shape.bIns ? emuToPx(shape.bIns, sy) : 8;
+    const maxW = ow - lPad - rPad;
     ctx.textBaseline = 'top';
 
     // First pass: wrap all text and calculate total height
@@ -3055,7 +3066,7 @@ function renderShapeText(ctx, shape, ox, oy, ow, oh) {
     for (const para of shape.texts) {
         for (const run of para.runs) {
             if (!run.text.trim()) continue;
-            const fs = Math.max(8, run.sz / 100);
+            const fs = Math.max(8, Math.round(run.sz / 75)); // hundredths-of-pt → px (1pt = 4/3px)
             ctx.font = (run.italic ? 'italic ' : '') + (run.bold ? 'bold ' : '') + fs + 'px "' + run.font + '", "Microsoft YaHei", sans-serif';
             const lines = wrapText(ctx, run.text, maxW);
             for (const line of lines) {
@@ -3069,29 +3080,29 @@ function renderShapeText(ctx, shape, ox, oy, ow, oh) {
     if (shape.texts.length > 0) totalH -= 4;
 
     // Vertical anchor: t=top, ctr=center, b=bottom
-    let startY = oy + pad;
+    let startY = oy + tPad;
     if (shape.anchor === 'ctr') {
         startY = oy + (oh - totalH) / 2;
-        if (startY < oy + pad) startY = oy + pad;
+        if (startY < oy + tPad) startY = oy + tPad;
     } else if (shape.anchor === 'b') {
-        startY = oy + oh - totalH - pad;
-        if (startY < oy + pad) startY = oy + pad;
+        startY = oy + oh - totalH - bPad;
+        if (startY < oy + tPad) startY = oy + tPad;
     }
 
     // Second pass: render wrapped lines
     let cy = startY;
     for (const { text, run, para, fs } of wrappedLines) {
-        if (cy > oy + oh - 5) break;
+        if (cy > oy + oh - bPad) break;
         ctx.font = (run.italic ? 'italic ' : '') + (run.bold ? 'bold ' : '') + fs + 'px "' + run.font + '", "Microsoft YaHei", sans-serif';
         ctx.fillStyle = run.color;
         if (!text) {
             cy += fs * 1.35; // Empty line
             continue;
         }
-        let tx = ox + pad;
+        let tx = ox + lPad;
         const tw = ctx.measureText(text).width;
         if (para.align === 'ctr') tx = ox + (ow - tw) / 2;
-        else if (para.align === 'r') tx = ox + ow - pad - tw;
+        else if (para.align === 'r') tx = ox + ow - rPad - tw;
         ctx.fillText(text, tx, cy, maxW);
         cy += fs * 1.35;
     }
@@ -3218,14 +3229,15 @@ async function processPptToPdf() {
     const PDF_WIDTH = 595;
     const PDF_HEIGHT = Math.round(PDF_WIDTH * slideSize.cy / slideSize.cx);
 
-    // Canvas dimensions for rendering (higher resolution for better quality)
-    const canvasW = 1280;
+    // Canvas dimensions for rendering (2560px width = ~400 DPI on a standard A4-width PDF, crisp output)
+    const canvasW = 2560;
     const canvasH = Math.round(canvasW * slideSize.cy / slideSize.cx);
     const scaleX = canvasW / slideSize.cx;
     const scaleY = canvasH / slideSize.cy;
 
-    // Render slides and add to PDF (4 concurrent)
+    // Render slides in parallel batches, collect PNG data indexed by slide order
     const SLIDE_CONCURRENCY = 4;
+    const slidePngData = new Array(totalSlides);
     let slideCompleted = 0;
 
     for (let bi = 0; bi < totalSlides; bi += SLIDE_CONCURRENCY) {
@@ -3277,7 +3289,7 @@ async function processPptToPdf() {
                 }
             }
             if (bgUrl) {
-                try { const bi = await loadImage(bgUrl); cx.drawImage(bi, 0, 0, canvasW, canvasH); }
+                try { const bimg = await loadImage(bgUrl); cx.drawImage(bimg, 0, 0, canvasW, canvasH); }
                 catch (e) { cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvasW, canvasH); }
             } else if (!cx.fillStyle || cx.fillStyle === '#000000') {
                 cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, canvasW, canvasH);
@@ -3295,26 +3307,27 @@ async function processPptToPdf() {
                 } else if (el.type === 'picture') {
                     const ip = imgMap[el.embedId];
                     if (ip && mediaImages[ip]) {
-                        try { const img = await loadImage(mediaImages[ip]); renderPictureOnCanvas(cx, el, img, scaleX, scaleY); }
+                        try { const pimg = await loadImage(mediaImages[ip]); renderPictureOnCanvas(cx, el, pimg, scaleX, scaleY); }
                         catch (e) { /* skip */ }
                     }
                 }
             }
 
-            // Convert canvas to PNG and embed in PDF
-            const pngData = c.toDataURL('image/png').split(',')[1];
-            const pngImage = await pdfDoc.embedPng(pngData);
-            const page = pdfDoc.addPage([PDF_WIDTH, PDF_HEIGHT]);
-            page.drawImage(pngImage, {
-                x: 0,
-                y: 0,
-                width: PDF_WIDTH,
-                height: PDF_HEIGHT
-            });
+            // Store PNG data at correct slide index (NOT added to PDF yet — preserves order)
+            slidePngData[i] = c.toDataURL('image/png').split(',')[1];
         }));
 
         slideCompleted += bEnd - bi;
-        setProgress(25 + (slideCompleted / totalSlides * 70), `渲染第 ${slideCompleted}/${totalSlides} 张幻灯片...`);
+        setProgress(25 + (slideCompleted / totalSlides * 65), `渲染第 ${slideCompleted}/${totalSlides} 张幻灯片...`);
+    }
+
+    // Embed slides into PDF in correct order (sequential, not parallel)
+    setProgress(90, '组装 PDF...');
+    for (let i = 0; i < totalSlides; i++) {
+        if (!slidePngData[i]) continue;
+        const pngImage = await pdfDoc.embedPng(slidePngData[i]);
+        const page = pdfDoc.addPage([PDF_WIDTH, PDF_HEIGHT]);
+        page.drawImage(pngImage, { x: 0, y: 0, width: PDF_WIDTH, height: PDF_HEIGHT });
     }
 
     // Cleanup
