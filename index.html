@@ -770,7 +770,7 @@ const suiteTabs = [
     { id: 'resource-extract', zhName: '内嵌图片提取', enName: 'Asset Extractor', badge: 'ASSET EXTRACTOR', zhDesc: '【生产力神器】一键闪电解包 Word、PPT 或 PDF 文档，将其内部隐藏的所有高清原始配图及插图完整剥离，并自动打包成 ZIP 导出。', enDesc: 'Extract all embedded raw high-resolution image resources from Word/PPT/PDF into a ZIP file instantly.', accept: '.pdf,.docx,.pptx', configMode: 'extractor', icon: '📦' },
     { id: 'digital-esign', zhName: '电子签章 / 手写签名', enName: 'E-Sign & Stamp', badge: 'SANDBOX SIGN', zhDesc: '【远程合规】免去打印扫描！在本地安全沙箱画布中直接为合同、收据、公文加盖高精度透明电子公章，或开启手机/平板压感板手写签名。', enDesc: 'Affix secure digital corporate stamps or dynamic handwritten seals onto files without printing.', accept: '.pdf,.docx,.png,.jpg', configMode: 'esign', icon: '✍️' },
     { id: 'md-to-pdf', zhName: 'Markdown 转 PDF', enName: 'MD to PDF', badge: 'MD → PDF', zhDesc: '实时 Markdown 排版编辑器，内置多款高美感主题，一键导出精美 PDF 电子书或长图。', enDesc: 'Real-time Markdown editor with beautiful themes, export to polished PDF or long image.', accept: '', configMode: 'mdpdf', icon: '📝' },
-    { id: 'ocr', zhName: 'OCR 文字识别', enName: 'OCR Recognition', badge: 'PaddleOCR', zhDesc: '上传图片或 PDF，PaddleOCR-VL 引擎高精度提取文字，支持中英文混合识别。需启动 OCR 后端服务。', enDesc: 'Extract text from images or PDF using PaddleOCR-VL engine with Chinese/English support. Requires OCR backend service.', accept: '.png,.jpg,.jpeg,.webp,.bmp,.pdf', configMode: 'ocr', icon: '🔍' }
+    { id: 'ocr', zhName: 'OCR 文字识别', enName: 'OCR Recognition', badge: 'OCR', zhDesc: '上传图片或 PDF，OCR 引擎高精度提取文字，支持中英文混合识别。需启动 OCR 后端服务。', enDesc: 'Extract text from images or PDF using OCR engine with Chinese/English support. Requires OCR backend service.', accept: '.png,.jpg,.jpeg,.webp,.bmp,.pdf', configMode: 'ocr', icon: '🔍' }
 ];
 
 const securityTabs = [
@@ -4903,7 +4903,7 @@ p{margin:6pt 0;text-align:justify;} .chapter-title{page-break-before:always;font
 }
 
 // ========================================================
-// OCR (PaddleOCR-VL backend)
+// OCR backend
 // ========================================================
 const OCR_SERVER = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
     ? 'http://127.0.0.1:5000'
@@ -4959,7 +4959,7 @@ async function runOcr() {
             });
         }
 
-        setProgress(40, 'Calling PaddleOCR...');
+        setProgress(40, 'Calling OCR...');
 
         const resp = await fetch(`${OCR_SERVER}/api/ocr`, {
             method: 'POST',

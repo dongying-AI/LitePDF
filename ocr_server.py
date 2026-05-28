@@ -18,8 +18,9 @@ import base64
 import io
 import os
 import sys
+import threading
 
-# PaddlePaddle 2.6 无 PIR，仅需禁用 OneDNN 避免部分算子冲突
+# PaddlePaddle 2.6 禁用 OneDNN，避免连续推理时的 primitive 执行错误
 os.environ['FLAGS_use_mkldnn'] = '0'
 
 from flask import Flask, request, jsonify
@@ -32,10 +33,11 @@ CORS(app)
 
 # 延迟初始化，避免首次启动过慢
 _ocr = None
+_ocr_lock = threading.Lock()
 
-def get_ocr(lang='ch'):
+def get_ocr(lang='ch', force_reinit=False):
     global _ocr
-    if _ocr is None:
+    if _ocr is None or force_reinit:
         try:
             from paddleocr import PaddleOCR
             lang_map = {
@@ -72,28 +74,43 @@ def do_ocr():
     except Exception as e:
         return jsonify({'error': f'Image decode failed: {str(e)}'}), 400
 
-    # Run OCR
+    # Run OCR with thread lock (PaddlePaddle C++ backend is not thread-safe)
     h, w = img_np.shape[:2]
     fmt = data.get('format', 'plain')
     print(f"[OCR] Received image: {w}x{h}, lang={lang}, format={fmt}, size={len(img_bytes)} bytes")
 
-    ocr = get_ocr(lang)
-    try:
-        result = ocr.ocr(img_np)
-    except Exception as e:
-        print(f"[OCR] PaddleOCR error: {type(e).__name__}: {e}")
-        return jsonify({'error': f'OCR engine error: {str(e)}'}), 500
+    with _ocr_lock:
+        ocr = get_ocr(lang)
+        try:
+            result = ocr.ocr(img_np)
+        except Exception as e:
+            err_msg = str(e)
+            print(f"[OCR] PaddleOCR error: {type(e).__name__}: {err_msg}")
+            # 自动重试：OneDNN primitive 错误时重新初始化引擎
+            if 'primitive' in err_msg.lower() or 'could not execute' in err_msg.lower():
+                print("[OCR] Auto-retrying with fresh OCR engine...")
+                global _ocr
+                _ocr = None
+                try:
+                    ocr = get_ocr(lang, force_reinit=True)
+                    result = ocr.ocr(img_np)
+                    print("[OCR] Retry succeeded")
+                except Exception as e2:
+                    print(f"[OCR] Retry failed: {type(e2).__name__}: {e2}")
+                    return jsonify({'error': f'OCR engine error: {str(e2)}'}), 500
+            else:
+                return jsonify({'error': f'OCR engine error: {err_msg}'}), 500
 
-    # Extract text based on format
-    texts = []
-    if result and result[0]:
-        for line in result[0]:
-            text = line[1][0]
-            texts.append(text)
+        # Extract text based on format
+        texts = []
+        if result and result[0]:
+            for line in result[0]:
+                text = line[1][0]
+                texts.append(text)
 
-    output_text = '\n'.join(texts)
-    if fmt == 'structured':
-        output_text = _structured_text(result[0])
+        output_text = '\n'.join(texts)
+        if fmt == 'structured':
+            output_text = _structured_text(result[0])
 
     return jsonify({
         'text': output_text,
