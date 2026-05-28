@@ -620,6 +620,9 @@ const uiLocales = {
         ocrLangChiSim: "简体中文",
         ocrLangEng: "English",
         ocrLangChiEng: "中英混合",
+        ocrFormat: "输出格式",
+        ocrFormatPlain: "纯文本",
+        ocrFormatStructured: "保留格式",
         ocrBtn: "🔍 开始识别",
         ocrCopy: "📋 复制文本",
         ocrDownloadTxt: "💾 下载 TXT",
@@ -731,6 +734,9 @@ const uiLocales = {
         ocrLangChiSim: "简体中文",
         ocrLangEng: "English",
         ocrLangChiEng: "Chinese + English",
+        ocrFormat: "Output Format",
+        ocrFormatPlain: "Plain Text",
+        ocrFormatStructured: "Keep Format",
         ocrBtn: "🔍 Start OCR",
         ocrCopy: "📋 Copy Text",
         ocrDownloadTxt: "💾 Download TXT",
@@ -809,6 +815,7 @@ let htmlEditorInitialized = false;   // Whether HTML editor event listeners are 
 
 // OCR state
 let ocrOcrLang = 'ch';                // 'ch', 'eng', 'ch_en'
+let ocrFormat = 'plain';              // 'plain', 'structured'
 
 // ========================================================
 // NAVIGATION
@@ -877,6 +884,16 @@ function switchTab(id) {
     // HTML editor special handling
     if (id === 'html-to-pdf') {
         showHtmlEditor();
+    }
+
+    // OCR special handling: hide main process button, use config panel button only
+    const btnProcess = document.getElementById('btn-process');
+    if (btnProcess) {
+        if (id === 'ocr') {
+            btnProcess.classList.add('hidden');
+        } else if (id !== 'md-to-pdf' && id !== 'html-to-pdf') {
+            btnProcess.classList.remove('hidden');
+        }
     }
 }
 
@@ -1234,18 +1251,17 @@ function buildConfigHTML(mode, L) {
         </div>`;
     }
     if (mode === 'ocr') {
-        const langOptions = [
-            { v: 'ch', l: L.ocrLangChiSim },
-            { v: 'eng', l: L.ocrLangEng },
-            { v: 'ch_en', l: L.ocrLangChiEng }
+        const fmtOptions = [
+            { v: 'plain', l: L.ocrFormatPlain },
+            { v: 'structured', l: L.ocrFormatStructured }
         ];
-        const langBtns = langOptions.map(o =>
-            `<button onclick="setOcrLang('${o.v}')" class="px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-all ${ocrOcrLang === o.v ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}" id="ocr-lang-btn-${o.v}">${o.l}</button>`
+        const fmtBtns = fmtOptions.map(o =>
+            `<button onclick="setOcrFormat('${o.v}')" class="px-3 py-1.5 text-[11px] font-medium rounded-lg border transition-all ${ocrFormat === o.v ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}" id="ocr-fmt-btn-${o.v}">${o.l}</button>`
         ).join('');
         return `<div class="space-y-4">
             <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">🔍 ${L.ocrLang}</span>
-                <div class="flex flex-wrap gap-2">${langBtns}</div>
+                <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">📄 ${L.ocrFormat}</span>
+                <div class="flex flex-wrap gap-2">${fmtBtns}</div>
             </div>
             <button onclick="runOcr()" id="btn-ocr-run" class="w-full bg-slate-950 hover:bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.ocrBtn}</button>
             <div id="ocr-result-area" class="hidden space-y-3">
@@ -1286,6 +1302,9 @@ function resetUploadArea() {
         hideHtmlEditor();
         document.getElementById('action-area').classList.add('hidden');
         document.getElementById('upload-area').classList.remove('hidden');
+        // OCR hides main process button
+        const btnProcess = document.getElementById('btn-process');
+        if (btnProcess && currentTabId === 'ocr') btnProcess.classList.add('hidden');
     }
 }
 
@@ -4897,6 +4916,13 @@ function setOcrLang(lang) {
     if (zone) zone.innerHTML = buildConfigHTML('ocr', L);
 }
 
+function setOcrFormat(fmt) {
+    ocrFormat = fmt;
+    const L = uiLocales[currentLang];
+    const zone = document.getElementById('extra-config');
+    if (zone) zone.innerHTML = buildConfigHTML('ocr', L);
+}
+
 async function runOcr() {
     const L = uiLocales[currentLang];
     if (selectedFiles.length === 0) { showToast(L.noFile, 'warn'); return; }
@@ -4938,7 +4964,7 @@ async function runOcr() {
         const resp = await fetch(`${OCR_SERVER}/api/ocr`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: imgB64, lang: ocrOcrLang })
+            body: JSON.stringify({ image: imgB64, lang: ocrOcrLang, format: ocrFormat })
         });
 
         if (!resp.ok) {

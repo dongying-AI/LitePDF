@@ -19,10 +19,8 @@ import io
 import os
 import sys
 
-# 禁用 OneDNN + PIR，规避推理引擎兼容问题
+# PaddlePaddle 2.6 无 PIR，仅需禁用 OneDNN 避免部分算子冲突
 os.environ['FLAGS_use_mkldnn'] = '0'
-os.environ['FLAGS_pir_exec_mode'] = '0'
-os.environ['PADDLE_DISABLE_PIR'] = '1'
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -76,7 +74,8 @@ def do_ocr():
 
     # Run OCR
     h, w = img_np.shape[:2]
-    print(f"[OCR] Received image: {w}x{h}, lang={lang}, size={len(img_bytes)} bytes")
+    fmt = data.get('format', 'plain')
+    print(f"[OCR] Received image: {w}x{h}, lang={lang}, format={fmt}, size={len(img_bytes)} bytes")
 
     ocr = get_ocr(lang)
     try:
@@ -85,17 +84,90 @@ def do_ocr():
         print(f"[OCR] PaddleOCR error: {type(e).__name__}: {e}")
         return jsonify({'error': f'OCR engine error: {str(e)}'}), 500
 
-    # Extract text lines
+    # Extract text based on format
     texts = []
     if result and result[0]:
         for line in result[0]:
             text = line[1][0]
             texts.append(text)
 
+    output_text = '\n'.join(texts)
+    if fmt == 'structured':
+        output_text = _structured_text(result[0])
+
     return jsonify({
-        'text': '\n'.join(texts),
+        'text': output_text,
         'lines': len(texts)
     })
+
+
+def _structured_text(ocr_result):
+    """根据文本框坐标恢复行结构和段落。
+    ocr_result: list of [[box], (text, conf)]
+    box: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
+    """
+    if not ocr_result:
+        return ''
+
+    # 收集每个文本框的中心坐标和文本
+    boxes = []
+    for item in ocr_result:
+        box = item[0]  # 4个角点
+        text = item[1][0]
+        # 中心点
+        cx = sum(p[0] for p in box) / 4.0
+        cy = sum(p[1] for p in box) / 4.0
+        # 行高（上下边的平均高度差）
+        top_y = min(p[1] for p in box)
+        bottom_y = max(p[1] for p in box)
+        height = bottom_y - top_y
+        boxes.append({'text': text, 'cx': cx, 'cy': cy, 'height': height, 'top': top_y, 'bottom': bottom_y})
+
+    # 按中心 Y 坐标排序
+    boxes.sort(key=lambda b: b['cy'])
+
+    # 聚类：相近 Y 坐标的归为同一行
+    rows = []
+    current_row = [boxes[0]]
+    for b in boxes[1:]:
+        # 如果当前文本框与上一行中心 Y 的差值小于平均行高的一半，认为是同一行
+        prev = current_row[-1]
+        avg_h = (b['height'] + prev['height']) / 2
+        if abs(b['cy'] - prev['cy']) < avg_h * 0.6:
+            current_row.append(b)
+        else:
+            rows.append(current_row)
+            current_row = [b]
+    rows.append(current_row)
+
+    # 每行内按 X 坐标排序，从左到右
+    lines = []
+    for row in rows:
+        row.sort(key=lambda b: b['cx'])
+        line_text = ''.join(b['text'] for b in row)
+        lines.append(line_text)
+
+    # 段落检测：行间距大于 1.5 倍平均行高时插入空行
+    if len(lines) <= 1:
+        return '\n'.join(lines)
+
+    # 计算相邻行的间距
+    gaps = []
+    for i in range(1, len(rows)):
+        prev_bottom = max(b['bottom'] for b in rows[i-1])
+        curr_top = min(b['top'] for b in rows[i])
+        gaps.append(curr_top - prev_bottom)
+
+    avg_gap = sum(gaps) / len(gaps) if gaps else 0
+    avg_h = sum(b['height'] for row in rows for b in row) / len(boxes)
+
+    result_lines = [lines[0]]
+    for i, gap in enumerate(gaps):
+        if gap > avg_h * 1.2:  # 间距较大，认为是段落分隔
+            result_lines.append('')
+        result_lines.append(lines[i + 1])
+
+    return '\n'.join(result_lines)
 
 
 @app.route('/health', methods=['GET'])

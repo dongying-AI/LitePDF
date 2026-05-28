@@ -14,21 +14,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 Python 依赖（全走国内镜像）
+# 关键版本锁定：
+#   - paddlepaddle 2.6.2：无 PIR，与 PP-OCRv4 兼容
+#   - paddleocr 2.8.1：最后一个未引入 paddlex 的 2.x 版本，兼容 paddle 2.6
 RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install --no-cache-dir --default-timeout=300 \
     flask flask-cors pillow numpy && \
     pip install --no-cache-dir --default-timeout=600 \
-    paddlepaddle -i https://www.paddlepaddle.org.cn/packages/stable/cpu/ && \
+    paddlepaddle==2.6.2 -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     pip install --no-cache-dir --default-timeout=300 \
-    paddleocr
+    paddleocr==2.8.1
 
 # 复制 OCR 服务代码
 COPY ocr_server.py ./
 
-# 预热 PaddleOCR 模型（PP-OCRv4 + 禁用 OneDNN）
-ENV FLAGS_use_mkldnn=0 FLAGS_pir_exec_mode=0 PADDLE_DISABLE_PIR=1
-RUN rm -rf /root/.paddlex && \
-    python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(lang='ch', ocr_version='PP-OCRv4'); print('PaddleOCR ready')"
+# 不在构建时预热模型（避免容器内存不足导致 double free）
+# 模型将在容器启动后首次请求时由 ocr_server.py 懒加载初始化
 
 EXPOSE 5000
 
