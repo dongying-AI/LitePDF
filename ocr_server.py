@@ -40,7 +40,7 @@ def get_ocr(lang='ch'):
                 'ch_en': 'ch'
             }
             mapped_lang = lang_map.get(lang, 'ch')
-            _ocr = PaddleOCR(lang=mapped_lang)
+            _ocr = PaddleOCR(lang=mapped_lang, ocr_version='PP-OCRv4')
             print(f"[OCR] PaddleOCR initialized, lang={mapped_lang}")
         except ImportError:
             print("[OCR] ERROR: paddleocr not installed. Run: pip install paddlepaddle paddleocr")
