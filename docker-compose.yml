@@ -19,7 +19,7 @@ services:
       dockerfile: Dockerfile.ocr
     container_name: litepdf-ocr
     ports:
-      - "5000:5000"    # PaddleOCR 后端 API 端口
+      - "5000:5000"    # OCR 后端 API 端口
     # 增加共享内存和内存限制，避免 paddle C++ 后端 double free
     shm_size: '2gb'
     mem_limit: '4g'

@@ -27,7 +27,7 @@
 - **内嵌图片提取** — 从 Word/PPT/PDF 闪电解包所有高清原图
 - **电子签章 / 手写签名** — 本地印章库 + 压感手写签名
 - **Markdown 转 PDF** — 实时排版编辑器，4 套高美感主题，一键导出 PDF/长图
-- **OCR 文字识别** — PaddleOCR-VL 引擎，支持中英混合识别（需 OCR 后端服务）
+- **OCR 文字识别** — OCR 引擎高精度提取文字，支持纯文本/保留格式两种输出模式，中英混合识别（需 OCR 后端服务）
 
 ### 安全与防御
 
@@ -51,7 +51,7 @@
 | PDF 处理 | PDF-Lib, PDF.js                               |
 | 文档处理 | JSZip, SheetJS (XLSX), marked.js, html2canvas |
 | 加密     | Web Crypto API (AES-256-GCM + PBKDF2)         |
-| 后端     | Node.js (留言), PaddleOCR Python (OCR)        |
+| 后端     | Node.js (留言), Python Flask (OCR)            |
 | 部署     | Docker + Docker Compose                       |
 
 ## 快速开始
@@ -71,18 +71,19 @@ python -m http.server 8088
 node server.js
 
 # 4. 启动 OCR 后端（可选）
-pip install paddlepaddle paddleocr flask flask-cors pillow numpy
+pip install paddlepaddle==2.6.2 paddleocr==2.8.1 flask flask-cors pillow numpy
 python ocr_server.py
 ```
 
 ### Docker 一键部署
 
 ```bash
-# 基础服务（前端 + 留言）
+# 启动全部服务（前端 + 留言 + OCR）
 docker compose up -d
 
-# 含 OCR 全部服务
-docker compose --profile ocr up -d
+# 首次构建或依赖变更后需重建
+docker compose build --no-cache
+docker compose up -d
 ```
 
 服务端口：
@@ -92,7 +93,7 @@ docker compose --profile ocr up -d
 | ---------- | ------ | ------------------------ |
 | 前端     | 8088 | Nginx 静态页面         |
 | 留言 API | 3000 | Node.js 后端           |
-| OCR API  | 5000 | PaddleOCR 后端（可选） |
+| OCR API  | 5000 | OCR 后端               |
 
 ## 隐私说明
 
