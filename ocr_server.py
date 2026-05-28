@@ -29,6 +29,7 @@ from PIL import Image
 import numpy as np
 
 app = Flask(__name__)
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max request size
 CORS(app)
 
 # 延迟初始化，避免首次启动过慢
