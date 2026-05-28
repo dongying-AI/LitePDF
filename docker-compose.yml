@@ -19,9 +19,7 @@ services:
       dockerfile: Dockerfile.ocr
     container_name: litepdf-ocr
     ports:
-      - "5000:5000"    # PaddleOCR 后端 API 端口
+      - "5000:5000"    # PaddleOCR 后端 API 端口（nginx 内部也用 ocr:5000 通信）
     restart: unless-stopped
-    profiles:
-      - ocr           # 默认不启动，使用 --profile ocr 启用
     environment:
       - FLASK_ENV=production
