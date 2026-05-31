@@ -1242,11 +1242,10 @@ function buildConfigHTML(mode, L) {
     if (mode === 'epub') {
         return `<div class="space-y-4">
             <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">📚 EPUB → PDF / Word</span>
+                <span class="text-slate-500 font-semibold uppercase tracking-widest text-[10px] shrink-0">📚 EPUB → PDF</span>
             </div>
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="processEpubToPdfDirect()" class="w-full bg-slate-950 hover:bg-indigo-600 text-white text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.epubExportPdf}</button>
-                <button onclick="processEpubToWordDirect()" class="w-full bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold py-2.5 rounded-xl shadow-sm tracking-wide premium-transition">${L.epubExportWord}</button>
+            <div class="text-[11px] text-slate-400 leading-relaxed">
+                ${currentLang === 'zh' ? '上传 EPUB 文件后将自动解析并导出 PDF' : 'EPUB file will be automatically parsed and exported to PDF'}
             </div>
         </div>`;
     }
@@ -1419,6 +1418,18 @@ function handleFiles(files) {
             }
         };
         reader.readAsText(selectedFiles[0]);
+    }
+
+    // EPUB to PDF: auto-start processing
+    if (currentTabId === 'epub-to-pdf' && selectedFiles.length > 0) {
+        const file = selectedFiles[0];
+        if (file.name.toLowerCase().endsWith('.epub')) {
+            renderFileList();
+            showActionArea();
+            // Small delay to let UI update before heavy processing
+            setTimeout(() => processEpubToPdfDirect(), 300);
+            return;
+        }
     }
 
     renderFileList();
@@ -4833,78 +4844,113 @@ async function processEpubToPdfDirect() {
     showProgress(L.epubLoading);
     setProgress(5, L.epubLoading);
 
-    const { chapters, zip } = await parseEpubChapters(file);
+    const { chapters } = await parseEpubChapters(file);
     if (chapters.length === 0) throw new Error('No chapters found in EPUB');
 
     const A4_W = 595.28;
     const A4_H = 841.89;
+    const CONTENT_W = 794; // px at 96 DPI
     const pdfDoc = await PDFLib.PDFDocument.create();
 
-    // Render each chapter as an image
+    // Hidden iframe for rendering (completely invisible, no flash)
     const tempIframe = document.createElement('iframe');
-    tempIframe.style.cssText = 'position:fixed;top:-9999px;left:0;width:794px;height:1123px;border:none;';
+    tempIframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:0;height:0;border:none;opacity:0;pointer-events:none;';
     document.body.appendChild(tempIframe);
+
+    // Wrap each chapter HTML with clean print-friendly CSS
+    const wrapHtml = (html) => `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+*{box-sizing:border-box}
+body{margin:0;padding:40px 50px;font-family:"Microsoft YaHei","PingFang SC","Noto Serif CJK SC",serif;font-size:16px;line-height:1.85;color:#222;background:#fff;max-width:${CONTENT_W}px}
+h1,h2,h3,h4{margin:1.2em 0 0.6em;font-weight:600;line-height:1.4}
+h1{font-size:26px}h2{font-size:22px}h3{font-size:18px}
+p{margin:0.8em 0;text-align:justify;word-break:break-word}
+img{max-width:100%;height:auto;display:block;margin:1em auto}
+table{border-collapse:collapse;width:100%;margin:1em 0;font-size:14px}
+th,td{border:1px solid #ddd;padding:6px 10px}
+th{background:#f5f5f5;font-weight:600}
+pre,code{background:#f5f5f5;font-family:monospace;font-size:14px}
+pre{padding:12px;overflow-x:auto;border-radius:4px}
+blockquote{margin:1em 0;padding:0 1em;border-left:3px solid #ddd;color:#555}
+ul,ol{margin:0.8em 0;padding-left:1.8em}
+li{margin:0.3em 0}
+a{color:#333;text-decoration:none}
+hr{border:none;border-top:1px solid #ddd;margin:1.5em 0}
+svg{max-width:100%}
+figure{margin:1em 0}
+figcaption{font-size:14px;color:#666;text-align:center}
+</style></head><body>${html}</body></html>`;
 
     for (let i = 0; i < chapters.length; i++) {
         const ch = chapters[i];
         setProgress(10 + Math.floor((i / chapters.length) * 70), `${L.epubRendering} ${i + 1}/${chapters.length}`);
 
-        tempIframe.srcdoc = ch.html;
+        tempIframe.srcdoc = wrapHtml(ch.html);
         await new Promise(resolve => {
             tempIframe.onload = resolve;
-            setTimeout(resolve, 800);
+            setTimeout(resolve, 1000); // Ensure fonts/layout settle
         });
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 300));
 
         const iframeDoc = tempIframe.contentDocument || tempIframe.contentWindow.document;
         const bodyEl = iframeDoc.body;
-        const contentW = 794;
         const scrollH = Math.max(bodyEl.scrollHeight, bodyEl.offsetHeight, 1123);
-        tempIframe.style.width = contentW + 'px';
+        tempIframe.style.width = CONTENT_W + 'px';
         tempIframe.style.height = scrollH + 'px';
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 200));
 
+        // High-res capture (scale 3 = ~300 DPI)
         const canvas = await html2canvas(bodyEl, {
-            scale: 2, useCORS: true, backgroundColor: '#ffffff',
-            logging: false, width: contentW, height: scrollH,
-            windowWidth: contentW, windowHeight: scrollH
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            width: CONTENT_W,
+            height: scrollH,
+            windowWidth: CONTENT_W,
+            windowHeight: scrollH
         });
 
-        const imgW = canvas.width, imgH = canvas.height;
-        const scale = A4_W / imgW, totalH = imgH * scale;
-        const pngData = canvas.toDataURL('image/png');
+        const imgW = canvas.width;
+        const imgH = canvas.height;
+        const pxScale = A4_W / imgW;
+        const pagePxH = Math.floor(A4_H / pxScale);
 
-        // Add pages for this chapter
-        let pageIndex = 0;
-        const sliceH = Math.floor(A4_H / scale);
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = imgW;
-        tempCanvas.height = Math.min(sliceH, imgH);
-        const tctx = tempCanvas.getContext('2d');
+        // Slice into A4 pages with 40px overlap to avoid cutting text
+        const overlap = 40;
+        const tempC = document.createElement('canvas');
+        tempC.width = imgW;
+        const tctx = tempC.getContext('2d');
 
-        while (pageIndex * sliceH < imgH) {
-            const sy = pageIndex * sliceH;
-            const sh = Math.min(sliceH, imgH - sy);
-            if (sh !== tempCanvas.height) { tempCanvas.height = sh; }
-            tctx.clearRect(0, 0, imgW, sh);
+        let sy = 0;
+        while (sy < imgH) {
+            const sh = Math.min(pagePxH, imgH - sy);
+            tempC.height = sh;
             tctx.fillStyle = '#ffffff';
             tctx.fillRect(0, 0, imgW, sh);
             tctx.drawImage(canvas, 0, sy, imgW, sh, 0, 0, imgW, sh);
-            const slicePng = await pdfDoc.embedPng(tempCanvas.toDataURL('image/png'));
+
+            const slicePng = await pdfDoc.embedPng(tempC.toDataURL('image/png'));
             const page = pdfDoc.addPage([A4_W, A4_H]);
-            const drawH = sh * scale;
+            const drawH = sh * pxScale;
             page.drawImage(slicePng, { x: 0, y: A4_H - drawH, width: A4_W, height: drawH });
-            pageIndex++;
+
+            sy += (pagePxH - overlap);
+            if (sy >= imgH - overlap && sy < imgH) sy = imgH - pagePxH; // Last page
+            if (sh < pagePxH && sy < imgH) sy = imgH; // Ensure exit
         }
     }
 
     document.body.removeChild(tempIframe);
 
-    setProgress(90, 'Saving...');
+    setProgress(95, 'Saving...');
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const baseName = file.name.replace(/\.epub$/i, '');
     download(blob, `${baseName}.pdf`, 'application/pdf');
+    hideProgress();
+    showToast(currentLang === 'zh' ? 'EPUB 导出 PDF 完成' : 'EPUB to PDF export complete', 'success');
 }
 
 async function processEpubToWordDirect() {
